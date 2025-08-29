@@ -1,38 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.confirmEmail = exports.sendEmail = exports.login = exports.signup = void 0;
+exports.confirmEmail = exports.signup = exports.login = void 0;
 const zod_1 = require("zod");
-exports.signup = {
+const validation_middleware_1 = require("../../middleware/validation.middleware");
+exports.login = {
     body: zod_1.z
         .object({
-        username: zod_1.z.string().min(5).max(20),
-        email: zod_1.z.email(),
-        password: zod_1.z
-            .string()
-            .regex(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/, "Password must contain at least 8 characters, one uppercase, one lowercase, and one number"),
-        confirmPassword: zod_1.z.string(),
+        email: validation_middleware_1.generalFields.email,
+        password: validation_middleware_1.generalFields.password,
+        confirmPassword: validation_middleware_1.generalFields.confirmPassword,
+    })
+};
+exports.signup = {
+    body: exports.login.body.extend({
+        username: validation_middleware_1.generalFields.username,
+        confirmPassword: validation_middleware_1.generalFields.confirmPassword,
     })
         .refine((data) => data.password === data.confirmPassword, {
         message: "Passwords do not match",
         path: ["confirmPassword"],
     }),
 };
-exports.login = {
-    body: zod_1.z.object({
-        email: zod_1.z.email(),
-        password: zod_1.z
-            .string()
-            .regex(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/, "Invalid email or password format"),
-    }),
-};
-exports.sendEmail = {
-    body: zod_1.z.object({
-        email: zod_1.z.email()
-    })
-};
 exports.confirmEmail = {
-    body: zod_1.z.object({
-        email: zod_1.z.email(),
-        otp: zod_1.z.string().length(6)
+    body: zod_1.z.strictObject({
+        email: validation_middleware_1.generalFields.email,
+        otp: validation_middleware_1.generalFields.otp,
     })
 };
+// export const sendEmail = {
+//   body: z.object({
+//     email:z.email()
+//   })
+// }
