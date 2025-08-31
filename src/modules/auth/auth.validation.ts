@@ -6,7 +6,6 @@ export const login = {
     .object({
       email: generalFields.email,
       password: generalFields.password,
-      confirmPassword: generalFields.confirmPassword,
     })
 };
 

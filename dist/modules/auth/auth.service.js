@@ -57,5 +57,18 @@ class AuthenticationService {
         });
         return res.status(201).json({ message: "Done" });
     };
+    login = async (req, res) => {
+        const { email, password } = req.body;
+        const user = await this.userModel.findOne({
+            filter: { email }
+        });
+        if (!user || !(await (0, hash_security_1.compareHash)(password, user.password))) {
+            throw new error_response_1.Notfound("Invalid login credentials");
+        }
+        if (!user.confirmedAt) {
+            throw new error_response_1.BadRequest("Verify your account first");
+        }
+        return res.json({ message: "Done" });
+    };
 }
 exports.default = new AuthenticationService;

@@ -1,8 +1,8 @@
 import type { Request, Response } from "express"
-import { IConfirmEmailBodyInputsDto, ISignupBodyInputsDto } from "./auth.dto"
+import { IConfirmEmailBodyInputsDto, ILoginBodyInputsDto, ISignupBodyInputsDto } from "./auth.dto"
 import { UserModel } from "../../DB/models/User.model";
 import { UserRepository } from "../../DB/repository/user.repository";
-import { Conflict, Notfound } from "../utils/response/error.response";
+import { BadRequest, Conflict, Notfound } from "../utils/response/error.response";
 import { compareHash, generateHash } from "../utils/security/hash.security";
 import { emailEvent } from "../utils/events/email.event";
 import { generateNumberOtp } from "../utils/otp";
@@ -59,6 +59,19 @@ await this.userModel.updateOne({
   }
 })
      return res.status(201).json({message:"Done"})
+}
+login = async(req: Request, res: Response): Promise<Response> => {
+const {email, password}: ILoginBodyInputsDto = req.body
+const user = await this.userModel.findOne({
+  filter:{email}
+})
+if(!user || !(await compareHash(password, user.password))) {
+  throw new Notfound("Invalid login credentials")
+}
+if(!user.confirmedAt) {
+  throw new BadRequest("Verify your account first")
+}
+return res.json({message:"Done"})
 }
 
 }
