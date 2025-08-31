@@ -6,6 +6,7 @@ import { BadRequest, Conflict, Notfound } from "../utils/response/error.response
 import { compareHash, generateHash } from "../utils/security/hash.security";
 import { emailEvent } from "../utils/events/email.event";
 import { generateNumberOtp } from "../utils/otp";
+import { generateToken } from "../utils/security/token.security";
 
 class AuthenticationService {
   private userModel = new UserRepository(UserModel)
@@ -60,6 +61,7 @@ await this.userModel.updateOne({
 })
      return res.status(201).json({message:"Done"})
 }
+
 login = async(req: Request, res: Response): Promise<Response> => {
 const {email, password}: ILoginBodyInputsDto = req.body
 const user = await this.userModel.findOne({
@@ -71,7 +73,18 @@ if(!user || !(await compareHash(password, user.password))) {
 if(!user.confirmedAt) {
   throw new BadRequest("Verify your account first")
 }
-return res.json({message:"Done"})
+
+const access_token = await generateToken({
+  payload:{_id: user._id},
+})
+
+const refresh_token = await generateToken({
+  payload:{_id: user._id},
+  secret:process.env.REFRESH_USER_TOKEN_SIGNATURE as string,
+  options:{expiresIn:Number(process.env.REFRESH_TOKEN_EXPIRES_IN)}
+})
+
+return res.json({message:"Done", data:{credentials: {access_token, refresh_token}}})
 }
 
 }

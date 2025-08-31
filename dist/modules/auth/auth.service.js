@@ -6,6 +6,7 @@ const error_response_1 = require("../utils/response/error.response");
 const hash_security_1 = require("../utils/security/hash.security");
 const email_event_1 = require("../utils/events/email.event");
 const otp_1 = require("../utils/otp");
+const token_security_1 = require("../utils/security/token.security");
 class AuthenticationService {
     userModel = new user_repository_1.UserRepository(User_model_1.UserModel);
     constructor() {
@@ -68,7 +69,15 @@ class AuthenticationService {
         if (!user.confirmedAt) {
             throw new error_response_1.BadRequest("Verify your account first");
         }
-        return res.json({ message: "Done" });
+        const access_token = await (0, token_security_1.generateToken)({
+            payload: { _id: user._id },
+        });
+        const refresh_token = await (0, token_security_1.generateToken)({
+            payload: { _id: user._id },
+            secret: process.env.REFRESH_USER_TOKEN_SIGNATURE,
+            options: { expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRES_IN) }
+        });
+        return res.json({ message: "Done", data: { credentials: { access_token, refresh_token } } });
     };
 }
 exports.default = new AuthenticationService;
