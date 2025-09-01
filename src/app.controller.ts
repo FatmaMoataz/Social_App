@@ -10,6 +10,7 @@ import cors from "cors"
 import helmet from "helmet"
 import {rateLimit} from 'express-rate-limit'
 import authController from './modules/auth/auth.controller'
+import userController from './modules/user/user.controller'
 import { globalErrorHandling } from './modules/utils/response/error.response'
 
 import connectDB from './DB/connection.db.js'
@@ -34,6 +35,7 @@ app.get('/',(req:Request, res:Response) => {
 })
 // modules
 app.use("/auth", authController)
+app.use("/user", userController)
 
 app.use(globalErrorHandling)
 

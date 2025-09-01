@@ -12,6 +12,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = require("express-rate-limit");
 const auth_controller_1 = __importDefault(require("./modules/auth/auth.controller"));
+const user_controller_1 = __importDefault(require("./modules/user/user.controller"));
 const error_response_1 = require("./modules/utils/response/error.response");
 const connection_db_js_1 = __importDefault(require("./DB/connection.db.js"));
 const limiter = (0, express_rate_limit_1.rateLimit)({
@@ -31,6 +32,7 @@ const bootstrap = async () => {
     });
     // modules
     app.use("/auth", auth_controller_1.default);
+    app.use("/user", user_controller_1.default);
     app.use(error_response_1.globalErrorHandling);
     // invalid route
     app.use("{/*dummy}", (req, res) => { return res.status(404).json({ message: 'Invalid routing' }); });
