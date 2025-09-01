@@ -24,7 +24,7 @@ export interface IUser extends Document {
   phone?:string;
   address?:string;
   gender: string;
-  role:string;
+  role:RoleEnum;
   updatedAt?:Date;
   createdAt:Date;
 }

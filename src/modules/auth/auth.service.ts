@@ -35,7 +35,7 @@ class AuthenticationService {
      }
      const otp = generateNumberOtp()
     const user = await this.userModel.createUser({
-      data:[{username, email, password: await generateHash(password), confirmEmailOtp: await generateHash(String(otp))}]
+      data:[{username, email, password: await generateHash(password), confirmEmailOtp: await generateHash(String(otp)), gender: req.body.gender}]
     })
     emailEvent.emit("confirmEmail", {to: email, otp})
      return res.status(201).json({message:"Done", data:{user}})

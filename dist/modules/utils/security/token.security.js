@@ -1,17 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loginCredentials = exports.getSignature = exports.detectSignatureLevel = exports.generateToken = exports.SignatureLevelEnum = void 0;
+exports.decodeToken = exports.loginCredentials = exports.getSignature = exports.detectSignatureLevel = exports.verifyToken = exports.generateToken = exports.TokenEnum = exports.SignatureLevelEnum = void 0;
 const jsonwebtoken_1 = require("jsonwebtoken");
 const User_model_1 = require("../../../DB/models/User.model");
+const error_response_1 = require("../response/error.response");
 var SignatureLevelEnum;
 (function (SignatureLevelEnum) {
     SignatureLevelEnum["Bearer"] = "bearer";
     SignatureLevelEnum["System"] = "system";
 })(SignatureLevelEnum || (exports.SignatureLevelEnum = SignatureLevelEnum = {}));
+var TokenEnum;
+(function (TokenEnum) {
+    TokenEnum["access"] = "access";
+    TokenEnum["refresh"] = "refresh";
+})(TokenEnum || (exports.TokenEnum = TokenEnum = {}));
 const generateToken = async ({ payload, secret = process.env.ACCESS_USER_TOKEN_SIGNATURE, options = { expiresIn: Number(process.env.ACCESS_TOKEN_EXPIRES_IN) } }) => {
     return (0, jsonwebtoken_1.sign)(payload, secret, options);
 };
 exports.generateToken = generateToken;
+const verifyToken = async ({ token, secret = process.env.ACCESS_USER_TOKEN_SIGNATURE }) => {
+    return (0, jsonwebtoken_1.verify)(token, secret);
+};
+exports.verifyToken = verifyToken;
 const detectSignatureLevel = async (role = User_model_1.RoleEnum.user) => {
     let signatureLevel = SignatureLevelEnum.Bearer;
     switch (role) {
@@ -57,3 +67,22 @@ const loginCredentials = async (user) => {
     return { access_token, refresh_token };
 };
 exports.loginCredentials = loginCredentials;
+const decodeToken = async ({ authorization, tokenType = TokenEnum.access }) => {
+    const [bearerKey, token] = authorization.split(" ");
+    if (!bearerKey || !token) {
+        throw new error_response_1.Unauthorized("Missing token parts");
+    }
+    const signatures = await (0, exports.getSignature)(bearerKey);
+    const decoded = await (0, exports.verifyToken)({
+        token,
+        secret: tokenType === TokenEnum.refresh ? signatures.refresh_signature : signatures.access_signature
+    });
+    if (!decoded?._id || !decoded?.iat) {
+        throw new error_response_1.BadRequest("Invalid token payload");
+    }
+    const user = await User_model_1.UserModel.findOne({
+        filter: { _id: decoded._id }
+    });
+    return user;
+};
+exports.decodeToken = decodeToken;

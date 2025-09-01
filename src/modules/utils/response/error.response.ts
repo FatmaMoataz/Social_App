@@ -23,6 +23,18 @@ export class Notfound extends AppError {
     }
 }
 
+export class Unauthorized extends AppError {
+    constructor(message:string, cause?:unknown){
+        super(message, 401, cause)
+    }
+}
+
+export class Forbidden extends AppError {
+    constructor(message:string, cause?:unknown){
+        super(message, 403, cause)
+    }
+}
+
 export class Conflict extends AppError {
     constructor(message:string, cause?:unknown){
         super(message, 409, cause)
