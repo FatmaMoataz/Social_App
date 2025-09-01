@@ -69,15 +69,8 @@ class AuthenticationService {
         if (!user.confirmedAt) {
             throw new error_response_1.BadRequest("Verify your account first");
         }
-        const access_token = await (0, token_security_1.generateToken)({
-            payload: { _id: user._id },
-        });
-        const refresh_token = await (0, token_security_1.generateToken)({
-            payload: { _id: user._id },
-            secret: process.env.REFRESH_USER_TOKEN_SIGNATURE,
-            options: { expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRES_IN) }
-        });
-        return res.json({ message: "Done", data: { credentials: { access_token, refresh_token } } });
+        const credentials = await (0, token_security_1.loginCredentials)(user);
+        return res.json({ message: "Done", data: { credentials } });
     };
 }
 exports.default = new AuthenticationService;

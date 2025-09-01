@@ -1,4 +1,4 @@
-import { Schema, Document, model, models } from "mongoose";
+import { Schema, Document, model, models, HydratedDocument } from "mongoose";
 
 export enum GenderEnum {
   male='male',
@@ -64,3 +64,4 @@ userSchema.virtual("username").set(function (value:string) {
 })
 
 export const UserModel = models.User || model<IUser>("User", userSchema)
+export type HUserDocument = HydratedDocument<IUser>
