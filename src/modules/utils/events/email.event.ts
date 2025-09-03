@@ -19,3 +19,14 @@ try {
     
 }
 })
+
+emailEvent.on("resetPassword", async(data: IEmail) => {
+try {
+    data.subject="Reset-Account-Password",
+    data.html=verifyEmail({otp:data.otp, title:"Email Confirmation"})
+    await sendEmail(data)
+} catch (error) {
+    console.log("Failed to send email", error);
+    
+}
+})

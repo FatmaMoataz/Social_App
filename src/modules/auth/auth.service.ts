@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { IConfirmEmailBodyInputsDto, IGmail, ILoginBodyInputsDto, ISignupBodyInputsDto } from "./auth.dto"
+import { IConfirmEmailBodyInputsDto, IForgotCodeBodyInputsDto, IGmail, ILoginBodyInputsDto, ISignupBodyInputsDto } from "./auth.dto"
 import { ProviderEnum, UserModel } from "../../DB/models/User.model";
 import { UserRepository } from "../../DB/repository/user.repository";
 import { BadRequest, Conflict, Notfound } from "../utils/response/error.response";
@@ -36,6 +36,58 @@ class AuthenticationService {
      * @example({username, email, password}: ISignupBodyInputsDto)
      * return {message:'Done', statusCode:201}
      */
+
+loginWithGmail = async(req: Request, res: Response): Promise<Response> => {
+  const {idToken}: IGmail = req.body
+  const {email} = await this.verifyGmailAccount(idToken)
+  const user = await this.userModel.findOne({
+    filter: {
+      email,
+      provider: ProviderEnum.GOOGLE
+    }
+  })
+  if(!user) {
+    throw new Notfound(`Not registered account or Registered with another provider`)
+  }
+
+const credentials = await loginCredentials(user)
+
+return res.json({message:"Done", data: {credentials}})
+}
+
+signupWithGmail = async(req: Request, res: Response): Promise<Response> => {
+  const {idToken}: IGmail = req.body
+  const {email, family_name, given_name, name, picture} = await this.verifyGmailAccount(idToken)
+  const user = await this.userModel.findOne({
+    filter: {
+      email
+    }
+  })
+  if(user) {
+    if(user.provider === ProviderEnum.GOOGLE) {
+       return await this.loginWithGmail(req, res)
+    }
+    throw new Conflict(`Email exist with another provider ${user.provider}`)
+  }
+  const [newUser] = (await this.userModel.create({
+    data:[{
+      email: email as string,
+      firstname: given_name as string,
+      lastname: family_name as string,
+      profileImg: picture as string,
+      confirmedAt: new Date(),
+      provider:ProviderEnum.GOOGLE
+    }]
+  })) || []
+  if(!newUser) {
+    throw new BadRequest("Failed to signup with gmail please try again later")
+  }
+
+const credentials = await loginCredentials(newUser)
+
+return res.status(201).json({message:"Done", data: {credentials}})
+}
+
     signup=async(req: Request, res: Response):Promise<Response> =>{
      let { username, email, password}: ISignupBodyInputsDto = req.body
      const checkUserExist = await this.userModel.findOne({
@@ -92,56 +144,27 @@ const credentials = await loginCredentials(user)
 return res.json({message:"Done", data:{credentials}})
 }
 
-loginWithGmail = async(req: Request, res: Response): Promise<Response> => {
-  const {idToken}: IGmail = req.body
-  const {email} = await this.verifyGmailAccount(idToken)
-  const user = this.userModel.findOne({
-    filter: {
-      email,
-      provider: ProviderEnum.GOOGLE
-    }
-  })
-  if(!user) {
-    throw new Notfound(`Not registered account or Registered with another provider`)
-  }
-
-const credentials = await loginCredentials(user)
-
-return res.json({message:"Done", data: {credentials}})
-}
-
-signupWithGmail = async(req: Request, res: Response): Promise<Response> => {
-  const {idToken}: IGmail = req.body
-  const {email, family_name, given_name, name, picture} = await this.verifyGmailAccount(idToken)
-  const user = this.userModel.findOne({
-    filter: {
-      email
-    }
-  })
-  if(user) {
-    if(user.provider === ProviderEnum.GOOGLE) {
-       return await this.loginWithGmail(req, res)
-    }
-    throw new Conflict(`Email exist with another provider ${user.provider}`)
-  }
-  const [newUser] = (await this.userModel.create({
-    data:[{
-      email: email as string,
-      firstname: given_name as string,
-      lastname: family_name as string,
-      profileImg: picture as string,
-      confirmedAt: new Date(),
-      provider:ProviderEnum.GOOGLE
-    }]
-  })) || []
-  if(!newUser) {
-    throw new BadRequest("Failed to signup with gmail please try again later")
-  }
-
-const credentials = await loginCredentials(newUser)
-
-return res.status(201).json({message:"Done", data: {credentials}})
-}
+// sendForgotCode = async(req: Request, res: Response): Promise<Response> => {
+// const {email}: IForgotCodeBodyInputsDto = req.body
+// const user = await this.userModel.findOne({
+//   filter:{email, provider: ProviderEnum.SYSTEM, confirmedAt:{$exists: true}}
+// })
+// if(!user) {
+//   throw new Notfound("Invalid account: not registered, invalid provider or not confirmed")
+// }
+// const otp = generateNumberOtp()
+// const res = await this.userModel.updateOne({
+//   filter:{email},
+//   update: {
+//     resetPasswordOtp: await generateHash(String(otp))
+//   }
+// })
+// if(!res.watchedCount) {
+// throw new BadRequest("Failed to send the reset code please try again later")
+// }
+// emailEvent.emit("resetPassword", {to:email, otp})
+// return res.json({message:"Done", data:{otp}})
+// }
 
 }
 
