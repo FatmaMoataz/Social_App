@@ -1,3 +1,4 @@
+import {v4 as uuid} from 'uuid'
 import type { JwtPayload, Secret, SignOptions } from "jsonwebtoken";
 import { sign, verify } from "jsonwebtoken";
 import {
@@ -7,6 +8,8 @@ import {
 } from "../../../DB/models/User.model";
 import { BadRequest, Unauthorized } from "../response/error.response";
 import { UserRepository } from "../../../DB/repository/user.repository";
+import { HTokenDocument, TokenModel } from '../../../DB/models/Token.model';
+import { TokenRepository } from '../../../DB/repository/token.repository';
 
 export enum SignatureLevelEnum {
   Bearer = "bearer",
@@ -16,6 +19,11 @@ export enum SignatureLevelEnum {
 export enum TokenEnum {
   access = "access",
   refresh = "refresh",
+}
+
+export enum LogoutEnum {
+  only = "only",
+  all = "all",
 }
 
 export const generateToken = async ({
@@ -85,17 +93,17 @@ export const loginCredentials = async (user: HUserDocument) => {
   const signatureLevel = await detectSignatureLevel(user.role);
   const signatures = await getSignature(signatureLevel);
   console.log(signatures);
-
+const jwtid = uuid()
   const access_token = await generateToken({
     payload: { _id: user._id },
     secret: signatures.access_signature,
-    options: { expiresIn: Number(process.env.ACCESS_TOKEN_EXPIRES_IN) },
+    options: { expiresIn: Number(process.env.ACCESS_TOKEN_EXPIRES_IN), jwtid },
   });
 
   const refresh_token = await generateToken({
     payload: { _id: user._id },
     secret: signatures.refresh_signature,
-    options: { expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRES_IN) },
+    options: { expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRES_IN), jwtid },
   });
   return { access_token, refresh_token };
 };
@@ -108,10 +116,12 @@ export const decodeToken = async ({
   tokenType?: TokenEnum;
 }) => {
     const userModel = new UserRepository(UserModel)
+    const tokenModel = new UserRepository(TokenModel)
   const [bearerKey, token] = authorization.split(" ");
   if (!bearerKey || !token) {
     throw new Unauthorized("Missing token parts");
   }
+
   const signatures = await getSignature(bearerKey as SignatureLevelEnum);
   const decoded = await verifyToken({
     token,
@@ -123,10 +133,35 @@ export const decodeToken = async ({
   if (!decoded?._id || !decoded?.iat) {
     throw new BadRequest("Invalid token payload");
   }
+  if(await tokenModel.findOne({filter:{jti:decoded.jti}})) {
+throw new Unauthorized("Invalid or Old login credentials")
+  }
   const user = await userModel.findOne(
     {filter:{ _id: decoded._id }});
 if(!user) {
     throw new BadRequest("Vot registered account")
 }
+  if((user.changeCredentialsTime?.getTime()) || 0 > decoded.iat * 1000) {
+throw new Unauthorized("Invalid or Old login credentials")
+  }
   return {user, decoded};
 };
+
+export const createRevokeToken = async(decoded: JwtPayload):Promise<HTokenDocument> => {
+  const tokenModel = new TokenRepository(TokenModel)
+
+const[result] =  await tokenModel.create({
+    data:[
+      {
+        jti:decoded.jti as string,
+        expiresIn: (decoded.iat as number) + Number(process.env.REFRESH_TOKEN_EXPIRES_IN),
+        userId: decoded._id
+      }
+    ]
+  }) || []
+
+  if(!result) {
+    throw new BadRequest("Failed to revoke this token 😢")
+  }
+  return result
+}
