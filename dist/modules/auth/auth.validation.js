@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.confirmEmail = exports.signup = exports.login = void 0;
+exports.signupWithGmail = exports.confirmEmail = exports.signup = exports.login = void 0;
 const zod_1 = require("zod");
 const validation_middleware_1 = require("../../middleware/validation.middleware");
 exports.login = {
@@ -26,8 +26,8 @@ exports.confirmEmail = {
         otp: validation_middleware_1.generalFields.otp,
     })
 };
-// export const sendEmail = {
-//   body: z.object({
-//     email:z.email()
-//   })
-// }
+exports.signupWithGmail = {
+    body: zod_1.z.strictObject({
+        idToken: zod_1.z.string()
+    })
+};

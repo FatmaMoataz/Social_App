@@ -27,9 +27,8 @@ export const confirmEmail = {
     })
 };
 
-// export const sendEmail = {
-//   body: z.object({
-//     email:z.email()
-//   })
-// }
-
+export const signupWithGmail = {
+  body: z.strictObject({
+      idToken: z.string()
+    })
+};

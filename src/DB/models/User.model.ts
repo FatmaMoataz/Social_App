@@ -10,8 +10,13 @@ export enum RoleEnum {
   admin='admin'
 }
 
+export enum ProviderEnum {
+  GOOGLE='GOOGLE',
+  SYSTEM='SYSTEM'
+}
+
 export interface IUser extends Document {
-  // _id: Types.ObjectId
+
   firstname: string;
   lastname: string;
   username?: string;
@@ -23,10 +28,14 @@ export interface IUser extends Document {
   changeCredentialsTime?:Date;
   phone?:string;
   address?:string;
+  profileImg?:string;
+  coverImgs?:string[];
   gender: string;
   role:RoleEnum;
   updatedAt?:Date;
   createdAt:Date;
+  provider: ProviderEnum
+
 }
 
 const userSchema = new Schema<IUser>({
@@ -37,8 +46,12 @@ lastname:{type:String, required: true, minLength:2, maxLength:25},
 email:{type:String, required:true, unique:true},
 confirmEmailOtp:{type:String},
 confirmedAt:{type:Date},
+profileImg:{type:String},
+coverImgs:{type:String},
 
-password:{type:String, required:true},
+password:{type:String, required: function () {
+  return this.provider === ProviderEnum.GOOGLE ? false : true
+}},
 resetPasswordOtp:{type:String},
 changeCredentialsTime:{type:Date},
 
@@ -47,6 +60,7 @@ address:{type:String},
 
 gender:{type:String, enum:GenderEnum, default:GenderEnum.male},
 role:{type:String, enum:RoleEnum, default:RoleEnum.user},
+provider:{type:String, enum:ProviderEnum, default:ProviderEnum.SYSTEM},
 
 updatedAt:{type:Date},
 createdAt:{type:Date}
