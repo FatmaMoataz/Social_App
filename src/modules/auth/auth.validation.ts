@@ -38,3 +38,18 @@ export const sendForgotPasswordCode = {
       email: generalFields.email
     })
 };
+
+export const verifyForgotPasswordCode = {
+  body: sendForgotPasswordCode.body.extend({
+      otp: generalFields.otp
+    })
+};
+
+export const resetForgotPasswordCode = {
+  body: verifyForgotPasswordCode.body.extend({
+      password: generalFields.password,
+      confirmPassword: generalFields.confirmPassword
+    }).refine((data) => {
+return data.password === data.confirmPassword
+    }, {message:"password mismatch confirm-password", path:['confirmPassword']})
+};

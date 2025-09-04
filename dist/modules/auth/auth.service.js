@@ -32,6 +32,51 @@ class AuthenticationService {
      * @example({username, email, password}: ISignupBodyInputsDto)
      * return {message:'Done', statusCode:201}
      */
+    loginWithGmail = async (req, res) => {
+        const { idToken } = req.body;
+        const { email } = await this.verifyGmailAccount(idToken);
+        const user = await this.userModel.findOne({
+            filter: {
+                email,
+                provider: User_model_1.ProviderEnum.GOOGLE
+            }
+        });
+        if (!user) {
+            throw new error_response_1.Notfound("Not registered account or Registered with another provider");
+        }
+        const credentials = await (0, token_security_1.loginCredentials)(user);
+        return res.json({ message: "Done", data: { credentials } });
+    };
+    signupWithGmail = async (req, res) => {
+        const { idToken } = req.body;
+        const { email, family_name, given_name, name, picture } = await this.verifyGmailAccount(idToken);
+        const user = await this.userModel.findOne({
+            filter: {
+                email
+            }
+        });
+        if (user) {
+            if (user.provider === User_model_1.ProviderEnum.GOOGLE) {
+                return await this.loginWithGmail(req, res);
+            }
+            throw new error_response_1.Conflict(`Email exist with another provider ${user.provider}`);
+        }
+        const [newUser] = (await this.userModel.create({
+            data: [{
+                    email: email,
+                    firstname: given_name,
+                    lastname: family_name,
+                    profileImg: picture,
+                    confirmedAt: new Date(),
+                    provider: User_model_1.ProviderEnum.GOOGLE
+                }]
+        })) || [];
+        if (!newUser) {
+            throw new error_response_1.BadRequest("Failed to signup with gmail please try again later");
+        }
+        const credentials = await (0, token_security_1.loginCredentials)(newUser);
+        return res.status(201).json({ message: "Done", data: { credentials } });
+    };
     signup = async (req, res) => {
         let { username, email, password } = req.body;
         const checkUserExist = await this.userModel.findOne({
@@ -85,50 +130,63 @@ class AuthenticationService {
         const credentials = await (0, token_security_1.loginCredentials)(user);
         return res.json({ message: "Done", data: { credentials } });
     };
-    loginWithGmail = async (req, res) => {
-        const { idToken } = req.body;
-        const { email } = await this.verifyGmailAccount(idToken);
-        const user = this.userModel.findOne({
-            filter: {
-                email,
-                provider: User_model_1.ProviderEnum.GOOGLE
-            }
+    sendForgotCode = async (req, res) => {
+        const { email } = req.body;
+        const user = await this.userModel.findOne({
+            filter: { email, provider: User_model_1.ProviderEnum.SYSTEM, confirmedAt: { $exists: true } }
         });
         if (!user) {
-            throw new error_response_1.Notfound(`Not registered account or Registered with another provider`);
+            throw new error_response_1.Notfound("Invalid account: not registered, invalid provider or not confirmed");
         }
-        const credentials = await (0, token_security_1.loginCredentials)(user);
-        return res.json({ message: "Done", data: { credentials } });
-    };
-    signupWithGmail = async (req, res) => {
-        const { idToken } = req.body;
-        const { email, family_name, given_name, name, picture } = await this.verifyGmailAccount(idToken);
-        const user = this.userModel.findOne({
-            filter: {
-                email
+        const otp = (0, otp_1.generateNumberOtp)();
+        const result = await this.userModel.updateOne({
+            filter: { email },
+            update: {
+                resetPasswordOtp: await (0, hash_security_1.generateHash)(String(otp))
             }
         });
-        if (user) {
-            if (user.provider === User_model_1.ProviderEnum.GOOGLE) {
-                return await this.loginWithGmail(req, res);
+        if (!result.matchedCount) {
+            throw new error_response_1.BadRequest("Failed to send the reset code please try again later");
+        }
+        email_event_1.emailEvent.emit("resetPassword", { to: email, otp });
+        return res.json({ message: "Done", data: { otp } });
+    };
+    verifyForgotCode = async (req, res) => {
+        const { email, otp } = req.body;
+        const user = await this.userModel.findOne({
+            filter: { email, provider: User_model_1.ProviderEnum.SYSTEM, resetPasswordOtp: { $exists: true } }
+        });
+        if (!user) {
+            throw new error_response_1.Notfound("Invalid account: not registered, invalid provider, not confirmed or missing reset password code");
+        }
+        if (!(await (0, hash_security_1.compareHash)(otp, user.resetPasswordOtp))) {
+            throw new error_response_1.Notfound("Invalid otp");
+        }
+        return res.json({ message: "Done", data: { otp } });
+    };
+    resetForgotCode = async (req, res) => {
+        const { email, otp, password } = req.body;
+        const user = await this.userModel.findOne({
+            filter: { email, provider: User_model_1.ProviderEnum.SYSTEM, resetPasswordOtp: { $exists: true } }
+        });
+        if (!user) {
+            throw new error_response_1.Notfound("Invalid account: not registered, invalid provider, not confirmed or missing reset password code");
+        }
+        if (!(await (0, hash_security_1.compareHash)(otp, user.resetPasswordOtp))) {
+            throw new error_response_1.Conflict("Invalid otp");
+        }
+        const result = await this.userModel.updateOne({
+            filter: { email },
+            update: {
+                password: await (0, hash_security_1.generateHash)(password),
+                changeCredentials: new Date(),
+                $unset: { resetPasswordOtp: 1 }
             }
-            throw new error_response_1.Conflict(`Email exist with another provider ${user.provider}`);
+        });
+        if (!result.matchedCount) {
+            throw new error_response_1.BadRequest("Failed to reset password");
         }
-        const [newUser] = (await this.userModel.create({
-            data: [{
-                    email: email,
-                    firstname: given_name,
-                    lastname: family_name,
-                    profileImg: picture,
-                    confirmedAt: new Date(),
-                    provider: User_model_1.ProviderEnum.GOOGLE
-                }]
-        })) || [];
-        if (!newUser) {
-            throw new error_response_1.BadRequest("Failed to signup with gmail please try again later");
-        }
-        const credentials = await (0, token_security_1.loginCredentials)(newUser);
-        return res.status(201).json({ message: "Done", data: { credentials } });
+        return res.json({ message: "Done", data: { otp } });
     };
 }
 exports.default = new AuthenticationService;

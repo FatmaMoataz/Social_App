@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { IConfirmEmailBodyInputsDto, IForgotCodeBodyInputsDto, IGmail, ILoginBodyInputsDto, ISignupBodyInputsDto } from "./auth.dto"
+import { IConfirmEmailBodyInputsDto, IForgotCodeBodyInputsDto, IGmail, ILoginBodyInputsDto, IResetCodeBodyInputsDto, ISignupBodyInputsDto, IVerifyCodeBodyInputsDto } from "./auth.dto"
 import { ProviderEnum, UserModel } from "../../DB/models/User.model";
 import { UserRepository } from "../../DB/repository/user.repository";
 import { BadRequest, Conflict, Notfound } from "../utils/response/error.response";
@@ -47,7 +47,7 @@ loginWithGmail = async(req: Request, res: Response): Promise<Response> => {
     }
   })
   if(!user) {
-    throw new Notfound(`Not registered account or Registered with another provider`)
+    throw new Notfound("Not registered account or Registered with another provider")
   }
 
 const credentials = await loginCredentials(user)
@@ -144,27 +144,71 @@ const credentials = await loginCredentials(user)
 return res.json({message:"Done", data:{credentials}})
 }
 
-// sendForgotCode = async(req: Request, res: Response): Promise<Response> => {
-// const {email}: IForgotCodeBodyInputsDto = req.body
-// const user = await this.userModel.findOne({
-//   filter:{email, provider: ProviderEnum.SYSTEM, confirmedAt:{$exists: true}}
-// })
-// if(!user) {
-//   throw new Notfound("Invalid account: not registered, invalid provider or not confirmed")
-// }
-// const otp = generateNumberOtp()
-// const res = await this.userModel.updateOne({
-//   filter:{email},
-//   update: {
-//     resetPasswordOtp: await generateHash(String(otp))
-//   }
-// })
-// if(!res.watchedCount) {
-// throw new BadRequest("Failed to send the reset code please try again later")
-// }
-// emailEvent.emit("resetPassword", {to:email, otp})
-// return res.json({message:"Done", data:{otp}})
-// }
+sendForgotCode = async(req: Request, res: Response): Promise<Response> => {
+const {email}: IForgotCodeBodyInputsDto = req.body
+const user = await this.userModel.findOne({
+  filter:{email, provider: ProviderEnum.SYSTEM, confirmedAt:{$exists: true}}
+})
+if(!user) {
+  throw new Notfound("Invalid account: not registered, invalid provider or not confirmed")
+}
+const otp = generateNumberOtp()
+const result = await this.userModel.updateOne({
+  filter:{email},
+  update: {
+    resetPasswordOtp: await generateHash(String(otp))
+  }
+})
+if(!result.matchedCount) {
+throw new BadRequest("Failed to send the reset code please try again later")
+}
+emailEvent.emit("resetPassword", {to:email, otp})
+return res.json({message:"Done", data:{otp}})
+}
+
+verifyForgotCode = async(req: Request, res: Response): Promise<Response> => {
+const {email, otp}: IVerifyCodeBodyInputsDto = req.body
+const user = await this.userModel.findOne({
+  filter:{email, provider: ProviderEnum.SYSTEM, resetPasswordOtp:{$exists: true}}
+})
+if(!user) {
+  throw new Notfound("Invalid account: not registered, invalid provider, not confirmed or missing reset password code")
+}
+
+if(!(await compareHash(otp, user.resetPasswordOtp as string))){
+  throw new Notfound("Invalid otp")
+} 
+
+return res.json({message:"Done", data:{otp}})
+}
+
+resetForgotCode = async(req: Request, res: Response): Promise<Response> => {
+const {email, otp, password}: IResetCodeBodyInputsDto = req.body
+const user = await this.userModel.findOne({
+  filter:{email, provider: ProviderEnum.SYSTEM, resetPasswordOtp:{$exists: true}}
+})
+if(!user) {
+  throw new Notfound("Invalid account: not registered, invalid provider, not confirmed or missing reset password code")
+}
+
+if(!(await compareHash(otp, user.resetPasswordOtp as string))){
+  throw new Conflict("Invalid otp")
+} 
+
+const result = await this.userModel.updateOne({
+  filter: {email},
+  update:{
+ password: await generateHash(password),
+ changeCredentials: new Date(),
+ $unset: { resetPasswordOtp: 1}
+  }
+})
+if(!result.matchedCount) {
+throw new BadRequest("Failed to reset password")
+}
+
+return res.json({message:"Done", data:{otp}})
+}
 
 }
 
