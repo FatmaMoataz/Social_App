@@ -52,6 +52,12 @@ const credentials = await loginCredentials(req.user as HUserDocument)
   await createRevokeToken(req.decoded as JwtPayload)
 return res.status(201).json({message:'Done ✔', data:{credentials}})
     }
+
+        profileImg = async(req: Request, res: Response):Promise<Response> => {
+return res.json({message:"Done",data:{
+file: req.file
+}})
+    }
 }
 
 

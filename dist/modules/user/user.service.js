@@ -46,5 +46,10 @@ class userService {
         await (0, token_security_1.createRevokeToken)(req.decoded);
         return res.status(201).json({ message: 'Done ✔', data: { credentials } });
     };
+    profileImg = async (req, res) => {
+        return res.json({ message: "Done", data: {
+                file: req.file
+            } });
+    };
 }
 exports.default = new userService();
