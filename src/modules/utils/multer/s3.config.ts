@@ -4,7 +4,7 @@ import { StorageEnum } from './cloud.multer'
 import { createReadStream } from 'node:fs'
 import { BadRequest } from '../response/error.response'
 import { Upload } from '@aws-sdk/lib-storage'
-import { boolean } from 'zod'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 const s3Client = new S3Client({
     region: process.env.AWS_REGION as string,
@@ -87,33 +87,6 @@ else {
 return urls
 }
 
-// export const uploadLargeFiles = async ({
-//     storageApproach = StorageEnum.memory,
-//     Bucket = process.env.AWS_BUCKET_NAME as string,
-//     ACL = "private",
-//     path = "general",
-//     files
-// }: {
-//     storageApproach?: StorageEnum
-//     Bucket?: string,
-//     ACL?: ObjectCannedACL,
-//     path?: string,
-//     files: Express.Multer.File[]
-// }):Promise<string[]> => {
-// let urls:string[] = []
-
-// urls = await Promise.all(files.map(file => {
-//     return uploadLargeFile({
-//             storageApproach ,
-//     Bucket ,
-//     ACL,
-//     path,
-//     file,})
-// }))
-
-// return urls
-// }
-
 export const uploadLargeFile = async ({
     storageApproach = StorageEnum.disk,
     Bucket = process.env.AWS_BUCKET_NAME,
@@ -147,4 +120,23 @@ const {Key}=await upload.done()
         throw new BadRequest("Failed to generate upload key")
     }
 return Key
+}
+
+export const createPreSignUploadLink = async({Bucket = process.env.AWS_BUCKET_NAME as string, expiresIn=120,path = "general", ContentType, originalname}:{
+Bucket?:string,
+path?:string,
+expiresIn?: number
+originalname:string,
+ContentType:string
+}):Promise<{url:string, key:string}> => {
+    const command = new PutObjectCommand({
+        Bucket,
+        Key:`${process.env.APPLICATION_NAME}/${path}/${uuid()}_${originalname}`,
+        ContentType
+    })
+const url = await getSignedUrl(s3config(), command, {expiresIn})
+if(!url || !command.input?.Key) {
+    throw new BadRequest("Failed to create pre-signed url")
+}
+return {url, key:command.input.Key}
 }

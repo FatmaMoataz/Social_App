@@ -48,11 +48,16 @@ class userService {
         return res.status(201).json({ message: 'Done ✔', data: { credentials } });
     };
     profileImg = async (req, res) => {
-        const key = await (0, s3_config_1.uploadLargeFile)({
-            file: req.file,
-            path: `users/${req.decoded?._id}`
+        // const key = await uploadLargeFile({
+        //     file:req.file as Express.Multer.File,
+        //     path: `users/${req.decoded?._id}`
+        // })
+        const { ContentType, originalname } = req.body;
+        const { url, key } = await (0, s3_config_1.createPreSignUploadLink)({
+            ContentType, originalname, path: `users/${req.decoded?._id}`
         });
         return res.json({ message: "Done", data: {
+                url,
                 key
             } });
     };

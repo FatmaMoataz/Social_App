@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadLargeFile = exports.uploadFiles = exports.uploadFile = exports.s3config = void 0;
+exports.createPreSignUploadLink = exports.uploadLargeFile = exports.uploadFiles = exports.uploadFile = exports.s3config = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const uuid_1 = require("uuid");
 const cloud_multer_1 = require("./cloud.multer");
 const node_fs_1 = require("node:fs");
 const error_response_1 = require("../response/error.response");
 const lib_storage_1 = require("@aws-sdk/lib-storage");
+const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const s3Client = new client_s3_1.S3Client({
     region: process.env.AWS_REGION,
     credentials: {
@@ -58,30 +59,6 @@ const uploadFiles = async ({ storageApproach = cloud_multer_1.StorageEnum.memory
     return urls;
 };
 exports.uploadFiles = uploadFiles;
-// export const uploadLargeFiles = async ({
-//     storageApproach = StorageEnum.memory,
-//     Bucket = process.env.AWS_BUCKET_NAME as string,
-//     ACL = "private",
-//     path = "general",
-//     files
-// }: {
-//     storageApproach?: StorageEnum
-//     Bucket?: string,
-//     ACL?: ObjectCannedACL,
-//     path?: string,
-//     files: Express.Multer.File[]
-// }):Promise<string[]> => {
-// let urls:string[] = []
-// urls = await Promise.all(files.map(file => {
-//     return uploadLargeFile({
-//             storageApproach ,
-//     Bucket ,
-//     ACL,
-//     path,
-//     file,})
-// }))
-// return urls
-// }
 const uploadLargeFile = async ({ storageApproach = cloud_multer_1.StorageEnum.disk, Bucket = process.env.AWS_BUCKET_NAME, ACL = "private", path = "general", file }) => {
     const upload = new lib_storage_1.Upload({
         client: (0, exports.s3config)(),
@@ -103,3 +80,16 @@ const uploadLargeFile = async ({ storageApproach = cloud_multer_1.StorageEnum.di
     return Key;
 };
 exports.uploadLargeFile = uploadLargeFile;
+const createPreSignUploadLink = async ({ Bucket = process.env.AWS_BUCKET_NAME, expiresIn = 120, path = "general", ContentType, originalname }) => {
+    const command = new client_s3_1.PutObjectCommand({
+        Bucket,
+        Key: `${process.env.APPLICATION_NAME}/${path}/${(0, uuid_1.v4)()}_${originalname}`,
+        ContentType
+    });
+    const url = await (0, s3_request_presigner_1.getSignedUrl)((0, exports.s3config)(), command, { expiresIn });
+    if (!url || !command.input?.Key) {
+        throw new error_response_1.BadRequest("Failed to create pre-signed url");
+    }
+    return { url, key: command.input.Key };
+};
+exports.createPreSignUploadLink = createPreSignUploadLink;
