@@ -1,4 +1,4 @@
-import { ObjectCannedACL, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { GetObjectCommand, GetObjectCommandOutput, ObjectCannedACL, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { v4 as uuid } from 'uuid'
 import { StorageEnum } from './cloud.multer'
 import { createReadStream } from 'node:fs'
@@ -139,4 +139,13 @@ if(!url || !command.input?.Key) {
     throw new BadRequest("Failed to create pre-signed url")
 }
 return {url, key:command.input.Key}
+}
+
+export const getFile = async({Bucket=process.env.AWS_BUCKET_NAME as string, Key}:{Bucket?:string, Key:string}):Promise<GetObjectCommandOutput> => {
+const command = new GetObjectCommand({
+Bucket,
+Key
+})
+
+return await s3Client.send(command)
 }
