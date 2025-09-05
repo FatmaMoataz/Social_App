@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { StorageEnum } from './cloud.multer'
 import { createReadStream } from 'node:fs'
 import { BadRequest } from '../response/error.response'
+import { Upload } from '@aws-sdk/lib-storage'
 
 const s3Client = new S3Client({
     region: process.env.AWS_REGION as string,
@@ -43,4 +44,39 @@ export const uploadFile = async ({
     }
 
     return command.input.Key
+}
+
+export const uploadLargeFile = async ({
+    storageApproach = StorageEnum.disk,
+    Bucket = process.env.AWS_BUCKET_NAME,
+    ACL = "private",
+    path = "general",
+    file
+}: {
+    storageApproach?: StorageEnum
+    Bucket?: string,
+    ACL?: ObjectCannedACL,
+    path?: string,
+    file: Express.Multer.File
+}):Promise<string> => {
+const upload = new Upload({
+    client: s3config(),
+    params: {
+        Bucket,
+        ACL,
+        Key: `${process.env.APPLICATION_NAME}/${path}/${uuid()}_${file.originalname}`,
+        Body: storageApproach === StorageEnum.memory ? file.buffer : createReadStream(file.path),
+        ContentType: file.mimetype
+    },
+})
+upload.on("httpUploadProgress", (progress) => {
+console.log(progress);
+
+})
+const {Key}=await upload.done()
+
+    if (!Key) {
+        throw new BadRequest("Failed to generate upload key")
+    }
+return Key
 }

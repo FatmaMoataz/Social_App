@@ -48,7 +48,7 @@ class userService {
         return res.status(201).json({ message: 'Done ✔', data: { credentials } });
     };
     profileImg = async (req, res) => {
-        const key = await (0, s3_config_1.uploadFile)({
+        const key = await (0, s3_config_1.uploadLargeFile)({
             file: req.file,
             path: `users/${req.decoded?._id}`
         });
