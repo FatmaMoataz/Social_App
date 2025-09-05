@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadLargeFile = exports.uploadFile = exports.s3config = void 0;
+exports.uploadLargeFile = exports.uploadFiles = exports.uploadFile = exports.s3config = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const uuid_1 = require("uuid");
 const cloud_multer_1 = require("./cloud.multer");
@@ -31,6 +31,57 @@ const uploadFile = async ({ storageApproach = cloud_multer_1.StorageEnum.memory,
     return command.input.Key;
 };
 exports.uploadFile = uploadFile;
+const uploadFiles = async ({ storageApproach = cloud_multer_1.StorageEnum.memory, Bucket = process.env.AWS_BUCKET_NAME, ACL = "private", path = "general", files, isLarge = false }) => {
+    let urls = [];
+    if (isLarge) {
+        urls = await Promise.all(files.map(file => {
+            return (0, exports.uploadLargeFile)({
+                storageApproach,
+                Bucket,
+                ACL,
+                path,
+                file,
+            });
+        }));
+    }
+    else {
+        urls = await Promise.all(files.map(file => {
+            return (0, exports.uploadFile)({
+                storageApproach,
+                Bucket,
+                ACL,
+                path,
+                file,
+            });
+        }));
+    }
+    return urls;
+};
+exports.uploadFiles = uploadFiles;
+// export const uploadLargeFiles = async ({
+//     storageApproach = StorageEnum.memory,
+//     Bucket = process.env.AWS_BUCKET_NAME as string,
+//     ACL = "private",
+//     path = "general",
+//     files
+// }: {
+//     storageApproach?: StorageEnum
+//     Bucket?: string,
+//     ACL?: ObjectCannedACL,
+//     path?: string,
+//     files: Express.Multer.File[]
+// }):Promise<string[]> => {
+// let urls:string[] = []
+// urls = await Promise.all(files.map(file => {
+//     return uploadLargeFile({
+//             storageApproach ,
+//     Bucket ,
+//     ACL,
+//     path,
+//     file,})
+// }))
+// return urls
+// }
 const uploadLargeFile = async ({ storageApproach = cloud_multer_1.StorageEnum.disk, Bucket = process.env.AWS_BUCKET_NAME, ACL = "private", path = "general", file }) => {
     const upload = new lib_storage_1.Upload({
         client: (0, exports.s3config)(),

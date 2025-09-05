@@ -7,7 +7,7 @@ import { UserRepository } from "../../DB/repository/user.repository"
 import { TokenRepository } from "../../DB/repository/token.repository"
 import { TokenModel } from "../../DB/models/Token.model"
 import { JwtPayload } from "jsonwebtoken"
-import { uploadFile, uploadLargeFile } from "../utils/multer/s3.config"
+import { uploadFile, uploadFiles, uploadLargeFile } from "../utils/multer/s3.config"
 
 class userService {
     private userModel = new UserRepository(UserModel)
@@ -54,13 +54,24 @@ const credentials = await loginCredentials(req.user as HUserDocument)
 return res.status(201).json({message:'Done ✔', data:{credentials}})
     }
 
-        profileImg = async(req: Request, res: Response):Promise<Response> => {
+    profileImg = async(req: Request, res: Response):Promise<Response> => {
 const key = await uploadLargeFile({
     file:req.file as Express.Multer.File,
     path: `users/${req.decoded?._id}`
 })
 return res.json({message:"Done",data:{
 key
+}})
+    }
+
+    profileCoverImg = async(req: Request, res: Response):Promise<Response> => {
+const urls = await uploadFiles({
+    files:req.files as Express.Multer.File[],
+    path: `users/${req.decoded?._id}/cover`,
+    isLarge:true
+})
+return res.json({message:"Done",data:{
+    urls
 }})
     }
 }

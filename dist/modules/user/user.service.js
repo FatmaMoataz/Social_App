@@ -56,5 +56,15 @@ class userService {
                 key
             } });
     };
+    profileCoverImg = async (req, res) => {
+        const urls = await (0, s3_config_1.uploadFiles)({
+            files: req.files,
+            path: `users/${req.decoded?._id}/cover`,
+            isLarge: true
+        });
+        return res.json({ message: "Done", data: {
+                urls
+            } });
+    };
 }
 exports.default = new userService();
