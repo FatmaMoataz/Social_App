@@ -14,7 +14,7 @@ import userController from './modules/user/user.controller'
 import { BadRequest, globalErrorHandling } from './modules/utils/response/error.response'
 
 import connectDB from './DB/connection.db.js'
-import { getFile } from './modules/utils/multer/s3.config'
+import { createGetPreSignedLink, getFile } from './modules/utils/multer/s3.config'
 
 import {promisify} from 'node:util'
 import { pipeline } from 'node:stream'
@@ -58,6 +58,14 @@ throw new BadRequest("Failed to fetch this asset")
     res.setHeader("Content-Disposition", `attachments: filename="${downloadName || Key.split("/").pop()}"`)
     }
 return await createS3WriteStreamPipe(s3Response.Body as NodeJS.ReadableStream, res)
+})
+
+app.get("/uploads/pre-signed/*path", async(req:Request, res:Response):Promise<Response> => {
+    const {downloadName, download="false", expiresIn=120} = req.query as {downloadName?:string, download?:string, expiresIn?:number} 
+    const {path} = req.params as unknown as {path:string[]}
+    const Key = path.join("/")
+    const url = await createGetPreSignedLink({Key, download, downloadName: downloadName as string, expiresIn})
+return res.json({message:"Done", data:{url}})
 })
 
 // invalid route
