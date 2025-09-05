@@ -52,6 +52,13 @@ const bootstrap = async () => {
         }
         return await createS3WriteStreamPipe(s3Response.Body, res);
     });
+    app.get("/uploads/pre-signed/*path", async (req, res) => {
+        const { downloadName, download = "false", expiresIn = 120 } = req.query;
+        const { path } = req.params;
+        const Key = path.join("/");
+        const url = await (0, s3_config_1.createGetPreSignedLink)({ Key, download, downloadName: downloadName, expiresIn });
+        return res.json({ message: "Done", data: { url } });
+    });
     // invalid route
     app.use("{/*dummy}", (req, res) => { return res.status(404).json({ message: 'Invalid routing' }); });
     app.listen(port, () => {
