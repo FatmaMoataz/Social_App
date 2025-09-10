@@ -1,4 +1,4 @@
-import { GetObjectCommand, GetObjectCommandOutput, ObjectCannedACL, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, DeleteObjectCommandOutput, DeleteObjectsCommand, GetObjectCommand, GetObjectCommandOutput, ObjectCannedACL, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { v4 as uuid } from 'uuid'
 import { StorageEnum } from './cloud.multer'
 import { createReadStream } from 'node:fs'
@@ -166,5 +166,27 @@ Bucket,
 Key
 })
 
+return await s3Client.send(command)
+}
+
+export const deleteFile = async({Bucket=process.env.AWS_BUCKET_NAME as string, Key}:{Bucket?:string, Key:string}):Promise<DeleteObjectCommandOutput> => {
+const command = new DeleteObjectCommand({
+    Bucket,
+    Key
+})
+return await s3Client.send(command)
+}
+
+export const deleteFiles = async({Bucket=process.env.AWS_BUCKET_NAME as string, urls, Quiet=false}:{Bucket?:string, urls:string[], Quiet?:boolean}):Promise<DeleteObjectCommandOutput> => {
+const Objects = urls.map(url => {
+    return {Key:url}
+})
+    const command = new DeleteObjectsCommand({
+    Bucket,
+    Delete:{
+        Objects,
+        Quiet
+    }
+})
 return await s3Client.send(command)
 }

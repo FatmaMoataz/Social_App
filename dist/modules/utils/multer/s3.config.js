@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getFile = exports.createGetPreSignedLink = exports.createPreSignUploadLink = exports.uploadLargeFile = exports.uploadFiles = exports.uploadFile = exports.s3config = void 0;
+exports.deleteFiles = exports.deleteFile = exports.getFile = exports.createGetPreSignedLink = exports.createPreSignUploadLink = exports.uploadLargeFile = exports.uploadFiles = exports.uploadFile = exports.s3config = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const uuid_1 = require("uuid");
 const cloud_multer_1 = require("./cloud.multer");
@@ -114,3 +114,25 @@ const getFile = async ({ Bucket = process.env.AWS_BUCKET_NAME, Key }) => {
     return await s3Client.send(command);
 };
 exports.getFile = getFile;
+const deleteFile = async ({ Bucket = process.env.AWS_BUCKET_NAME, Key }) => {
+    const command = new client_s3_1.DeleteObjectCommand({
+        Bucket,
+        Key
+    });
+    return await s3Client.send(command);
+};
+exports.deleteFile = deleteFile;
+const deleteFiles = async ({ Bucket = process.env.AWS_BUCKET_NAME, urls, Quiet = false }) => {
+    const Objects = urls.map(url => {
+        return { Key: url };
+    });
+    const command = new client_s3_1.DeleteObjectsCommand({
+        Bucket,
+        Delete: {
+            Objects,
+            Quiet
+        }
+    });
+    return await s3Client.send(command);
+};
+exports.deleteFiles = deleteFiles;
