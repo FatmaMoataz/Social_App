@@ -41,8 +41,9 @@ const bootstrap = async () => {
     app.get("/test", async (req, res) => {
         // const {Key} = req.query as {Key:string}
         // const result = await deleteFile({Key})
-        const result = await (0, s3_config_1.deleteFiles)({ urls: ['SOCIAL_APP/users/68b967c20102055b990df90e/ebe81224-65a3-4217-a0d0-707b7d9c1b05_contact.png', 'SOCIAL_APP/users/68b967c20102055b990df90e/ce8151fd-ffb7-4f93-b34c-f7a7a84c267b_screencapture-kaggle-progression-badges-2025-08-29-23_00_38.png'] });
-        return res.json({ message: "Done", data: { result } });
+        // const result = await deleteFiles({urls:['SOCIAL_APP/users/68b967c20102055b990df90e/ebe81224-65a3-4217-a0d0-707b7d9c1b05_contact.png', 'SOCIAL_APP/users/68b967c20102055b990df90e/ce8151fd-ffb7-4f93-b34c-f7a7a84c267b_screencapture-kaggle-progression-badges-2025-08-29-23_00_38.png']})
+        await (0, s3_config_1.deleteFolderByPrefix)({ path: `users/` });
+        return res.json({ message: "Done", data: {} });
     });
     app.use(error_response_1.globalErrorHandling);
     app.get("/uploads/*path", async (req, res) => {

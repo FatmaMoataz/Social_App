@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, DeleteObjectCommandOutput, DeleteObjectsCommand, GetObjectCommand, GetObjectCommandOutput, ObjectCannedACL, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, DeleteObjectCommandOutput, DeleteObjectsCommand, DeleteObjectsCommandOutput, GetObjectCommand, GetObjectCommandOutput, ListObjectsV2Command, ObjectCannedACL, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { v4 as uuid } from 'uuid'
 import { StorageEnum } from './cloud.multer'
 import { createReadStream } from 'node:fs'
@@ -189,4 +189,24 @@ const Objects = urls.map(url => {
     }
 })
 return await s3Client.send(command)
+}
+
+export const listDirectoryFiles = async({Bucket=process.env.AWS_BUCKET_NAME as string, path}:{Bucket?:string, path:string}) => {
+    const command = new ListObjectsV2Command({
+        Bucket,
+        Prefix: `${process.env.APPLICATION_NAME}/${path}`
+    })
+    return s3Client.send(command)
+}
+
+export const deleteFolderByPrefix = async({Bucket=process.env.AWS_BUCKET_NAME as string, path, Quiet=false}:{Bucket?:string, path:string, Quiet?:boolean}):Promise<DeleteObjectsCommandOutput> => {
+   const fileList = await listDirectoryFiles({Bucket, path})
+   
+   if(!fileList?.Contents?.length) {
+   throw new BadRequest("Empty directory")
+   }
+   const urls:string [] = fileList.Contents?.map(file => {
+       return file.Key as string
+   })
+   return await deleteFiles({urls})
 }

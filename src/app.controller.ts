@@ -14,7 +14,7 @@ import userController from './modules/user/user.controller'
 import { BadRequest, globalErrorHandling } from './modules/utils/response/error.response'
 
 import connectDB from './DB/connection.db.js'
-import { createGetPreSignedLink, deleteFile, deleteFiles, getFile } from './modules/utils/multer/s3.config'
+import { createGetPreSignedLink, deleteFile, deleteFiles, deleteFolderByPrefix, getFile, listDirectoryFiles } from './modules/utils/multer/s3.config'
 
 import {promisify} from 'node:util'
 import { pipeline } from 'node:stream'
@@ -47,8 +47,13 @@ app.use("/user", userController)
 app.get("/test", async(req:Request, res:Response) => {
 // const {Key} = req.query as {Key:string}
 // const result = await deleteFile({Key})
-const result = await deleteFiles({urls:['SOCIAL_APP/users/68b967c20102055b990df90e/ebe81224-65a3-4217-a0d0-707b7d9c1b05_contact.png', 'SOCIAL_APP/users/68b967c20102055b990df90e/ce8151fd-ffb7-4f93-b34c-f7a7a84c267b_screencapture-kaggle-progression-badges-2025-08-29-23_00_38.png']})
-return res.json({message:"Done", data:{result}})
+
+
+// const result = await deleteFiles({urls:['SOCIAL_APP/users/68b967c20102055b990df90e/ebe81224-65a3-4217-a0d0-707b7d9c1b05_contact.png', 'SOCIAL_APP/users/68b967c20102055b990df90e/ce8151fd-ffb7-4f93-b34c-f7a7a84c267b_screencapture-kaggle-progression-badges-2025-08-29-23_00_38.png']})
+
+await deleteFolderByPrefix({path:`users/`})
+
+return res.json({message:"Done", data:{}})
 })
 
 app.use(globalErrorHandling)
