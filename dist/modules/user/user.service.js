@@ -81,6 +81,18 @@ class userService {
             path: `users/${req.decoded?._id}/cover`,
             isLarge: true
         });
+        const user = this.userModel.findByIdAndUpdate({
+            id: req.user?._id,
+            update: {
+                coverImgs: urls
+            }
+        });
+        if (!user) {
+            throw new error_response_1.BadRequest("Failed to update profile cover images");
+        }
+        if (req.user?.coverImgs) {
+            await (0, s3_config_1.deleteFiles)({ urls: req.user.coverImgs });
+        }
         return res.json({ message: "Done", data: {
                 urls
             } });

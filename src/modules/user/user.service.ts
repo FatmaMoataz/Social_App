@@ -7,7 +7,7 @@ import { UserRepository } from "../../DB/repository/user.repository"
 import { TokenRepository } from "../../DB/repository/token.repository"
 import { TokenModel } from "../../DB/models/Token.model"
 import { JwtPayload } from "jsonwebtoken"
-import { createPreSignUploadLink, uploadFiles } from "../utils/multer/s3.config"
+import { createPreSignUploadLink, deleteFiles, uploadFiles } from "../utils/multer/s3.config"
 import { BadRequest } from "../utils/response/error.response"
 import { s3Event } from "../utils/multer/s3.multer"
 
@@ -89,6 +89,18 @@ const urls = await uploadFiles({
     path: `users/${req.decoded?._id}/cover`,
     isLarge:true
 })
+const user = this.userModel.findByIdAndUpdate({
+    id: req.user?._id as Types.ObjectId,
+    update:{
+        coverImgs:urls
+    }
+})
+if(!user) {
+throw new BadRequest("Failed to update profile cover images")
+}
+if(req.user?.coverImgs) {
+    await deleteFiles({urls: req.user.coverImgs})
+}
 return res.json({message:"Done",data:{
     urls
 }})
