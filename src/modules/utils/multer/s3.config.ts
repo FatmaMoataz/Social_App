@@ -122,7 +122,7 @@ const {Key}=await upload.done()
 return Key
 }
 
-export const createPreSignUploadLink = async({Bucket = process.env.AWS_BUCKET_NAME as string, expiresIn=120,path = "general", ContentType, originalname}:{
+export const createPreSignUploadLink = async({Bucket = process.env.AWS_BUCKET_NAME as string, expiresIn=Number(process.env.AWS_PRE_SIGNED_URL_EXPIRES_IN_SECONDS),path = "general", ContentType, originalname}:{
 Bucket?:string,
 path?:string,
 expiresIn?: number
@@ -141,7 +141,7 @@ if(!url || !command.input?.Key) {
 return {url, key:command.input.Key}
 }
 
-export const createGetPreSignedLink = async({Bucket = process.env.AWS_BUCKET_NAME as string, expiresIn=120, Key, download="false", downloadName="dummy"}:{
+export const createGetPreSignedLink = async({Bucket = process.env.AWS_BUCKET_NAME as string, expiresIn=Number(process.env.AWS_PRE_SIGNED_URL_EXPIRES_IN_SECONDS), Key, download="false", downloadName="dummy"}:{
 Bucket?:string,
 expiresIn?: number
 Key:string,

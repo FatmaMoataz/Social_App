@@ -29,6 +29,7 @@ export interface IUser extends Document {
   phone?:string;
   address?:string;
   profileImg?:string;
+  tempProfileImg?:string;
   coverImgs?:string[];
   gender: string;
   role:RoleEnum;
@@ -47,6 +48,7 @@ email:{type:String, required:true, unique:true},
 confirmEmailOtp:{type:String},
 confirmedAt:{type:Date},
 profileImg:{type:String},
+tempProfileImg:{type:String},
 coverImgs:{type:String},
 
 password:{type:String, required: function () {

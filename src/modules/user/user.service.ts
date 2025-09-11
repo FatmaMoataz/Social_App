@@ -1,13 +1,15 @@
 import type{ Request, Response } from "express"
 import { ILogoutDto } from "./user.dto"
 import { createRevokeToken, loginCredentials, LogoutEnum } from "../utils/security/token.security"
-import { UpdateQuery } from "mongoose"
+import { Types, UpdateQuery } from "mongoose"
 import { HUserDocument, IUser, UserModel } from "../../DB/models/User.model"
 import { UserRepository } from "../../DB/repository/user.repository"
 import { TokenRepository } from "../../DB/repository/token.repository"
 import { TokenModel } from "../../DB/models/Token.model"
 import { JwtPayload } from "jsonwebtoken"
 import { createPreSignUploadLink, uploadFiles } from "../utils/multer/s3.config"
+import { BadRequest } from "../utils/response/error.response"
+import { s3Event } from "../utils/multer/s3.multer"
 
 class userService {
     private userModel = new UserRepository(UserModel)
@@ -55,15 +57,26 @@ return res.status(201).json({message:'Done ✔', data:{credentials}})
     }
 
     profileImg = async(req: Request, res: Response):Promise<Response> => {
-// const key = await uploadLargeFile({
-//     file:req.file as Express.Multer.File,
-//     path: `users/${req.decoded?._id}`
-// })
 const {ContentType, originalname}:{ContentType:string, originalname:string} = req.body
 const {url, key} = await createPreSignUploadLink({
     ContentType, originalname, path:`users/${req.decoded?._id}`
 })
-
+const user = await this.userModel.findByIdAndUpdate({
+id: req.user?._id as Types.ObjectId,
+update:{
+    profileImg:key,
+    tempProfileImg:req.user?.profileImg
+}
+})
+if(!user) {
+    throw new BadRequest("Failed to update user profile image")
+}
+s3Event.emit("trackProfileImgUpload", {
+    userId: req.user?._id, 
+    oldKey: req.user?.profileImg, 
+    key,
+    expiresIn: 30000
+})
 return res.json({message:"Done",data:{
     url,
 key

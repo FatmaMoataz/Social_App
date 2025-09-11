@@ -6,6 +6,8 @@ const user_repository_1 = require("../../DB/repository/user.repository");
 const token_repository_1 = require("../../DB/repository/token.repository");
 const Token_model_1 = require("../../DB/models/Token.model");
 const s3_config_1 = require("../utils/multer/s3.config");
+const error_response_1 = require("../utils/response/error.response");
+const s3_multer_1 = require("../utils/multer/s3.multer");
 class userService {
     userModel = new user_repository_1.UserRepository(User_model_1.UserModel);
     tokenModel = new token_repository_1.TokenRepository(Token_model_1.TokenModel);
@@ -48,13 +50,25 @@ class userService {
         return res.status(201).json({ message: 'Done ✔', data: { credentials } });
     };
     profileImg = async (req, res) => {
-        // const key = await uploadLargeFile({
-        //     file:req.file as Express.Multer.File,
-        //     path: `users/${req.decoded?._id}`
-        // })
         const { ContentType, originalname } = req.body;
         const { url, key } = await (0, s3_config_1.createPreSignUploadLink)({
             ContentType, originalname, path: `users/${req.decoded?._id}`
+        });
+        const user = await this.userModel.findByIdAndUpdate({
+            id: req.user?._id,
+            update: {
+                profileImg: key,
+                tempProfileImg: req.user?.profileImg
+            }
+        });
+        if (!user) {
+            throw new error_response_1.BadRequest("Failed to update user profile image");
+        }
+        s3_multer_1.s3Event.emit("trackProfileImgUpload", {
+            userId: req.user?._id,
+            oldKey: req.user?.profileImg,
+            key,
+            expiresIn: 30000
         });
         return res.json({ message: "Done", data: {
                 url,

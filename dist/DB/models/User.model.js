@@ -24,6 +24,7 @@ const userSchema = new mongoose_1.Schema({
     confirmEmailOtp: { type: String },
     confirmedAt: { type: Date },
     profileImg: { type: String },
+    tempProfileImg: { type: String },
     coverImgs: { type: String },
     password: { type: String, required: function () {
             return this.provider === ProviderEnum.GOOGLE ? false : true;
