@@ -8,15 +8,16 @@ const Token_model_1 = require("../../DB/models/Token.model");
 const s3_config_1 = require("../utils/multer/s3.config");
 const error_response_1 = require("../utils/response/error.response");
 const s3_multer_1 = require("../utils/multer/s3.multer");
+const success_response_1 = require("../utils/response/success.response");
 class userService {
     userModel = new user_repository_1.UserRepository(User_model_1.UserModel);
     tokenModel = new token_repository_1.TokenRepository(Token_model_1.TokenModel);
     constructor() { }
     profile = async (req, res) => {
-        return res.json({ message: "Done", data: {
-                user: req.user?._id,
-                decoded: req.decoded?.iat
-            } });
+        if (!req.user) {
+            throw new error_response_1.Unauthorized("missing user details");
+        }
+        return (0, success_response_1.successResponse)({ res, data: { user: req.user } });
     };
     logout = async (req, res) => {
         const { flag } = req.body;
@@ -47,7 +48,7 @@ class userService {
     refreshToken = async (req, res) => {
         const credentials = await (0, token_security_1.loginCredentials)(req.user);
         await (0, token_security_1.createRevokeToken)(req.decoded);
-        return res.status(201).json({ message: 'Done ✔', data: { credentials } });
+        return (0, success_response_1.successResponse)({ res, statusCode: 201, data: { credentials } });
     };
     profileImg = async (req, res) => {
         const { ContentType, originalname } = req.body;
@@ -70,10 +71,7 @@ class userService {
             key,
             expiresIn: 30000
         });
-        return res.json({ message: "Done", data: {
-                url,
-                key
-            } });
+        return (0, success_response_1.successResponse)({ res, data: { url } });
     };
     profileCoverImg = async (req, res) => {
         const urls = await (0, s3_config_1.uploadFiles)({
@@ -93,9 +91,7 @@ class userService {
         if (req.user?.coverImgs) {
             await (0, s3_config_1.deleteFiles)({ urls: req.user.coverImgs });
         }
-        return res.json({ message: "Done", data: {
-                urls
-            } });
+        return (0, success_response_1.successResponse)({ res });
     };
     freezeAccount = async (req, res) => {
         const { userId } = req.params || {};
@@ -120,7 +116,7 @@ class userService {
         if (!user.matchedCount) {
             throw new error_response_1.Notfound("User not found or Failed to freeze this resource");
         }
-        return res.json({ message: "Done" });
+        return (0, success_response_1.successResponse)({ res });
     };
     restoreAccount = async (req, res) => {
         const { userId } = req.params;

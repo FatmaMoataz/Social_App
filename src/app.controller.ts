@@ -1,4 +1,3 @@
-// import express, {type Express, type Request, type Response} from "express"
 import {resolve} from 'node:path'
 import {config} from 'dotenv'
 config({path: resolve("./config/.env.development")})

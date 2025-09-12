@@ -4,10 +4,12 @@ import { ProviderEnum, UserModel } from "../../DB/models/User.model";
 import { UserRepository } from "../../DB/repository/user.repository";
 import { BadRequest, Conflict, Notfound } from "../utils/response/error.response";
 import { compareHash, generateHash } from "../utils/security/hash.security";
-import { emailEvent } from "../utils/events/email.event";
+import { emailEvent } from "../utils/email/email.event";
 import { generateNumberOtp } from "../utils/otp";
 import { loginCredentials } from "../utils/security/token.security";
 import {OAuth2Client, type TokenPayload} from 'google-auth-library';
+import { successResponse } from "../utils/response/success.response";
+import { ILoginResponse } from "./auth.entities";
 
 class AuthenticationService {
   private userModel = new UserRepository(UserModel)
@@ -52,7 +54,7 @@ loginWithGmail = async(req: Request, res: Response): Promise<Response> => {
 
 const credentials = await loginCredentials(user)
 
-return res.json({message:"Done", data: {credentials}})
+return successResponse<ILoginResponse>({res, data:{credentials}})
 }
 
 signupWithGmail = async(req: Request, res: Response): Promise<Response> => {
@@ -85,10 +87,10 @@ signupWithGmail = async(req: Request, res: Response): Promise<Response> => {
 
 const credentials = await loginCredentials(newUser)
 
-return res.status(201).json({message:"Done", data: {credentials}})
+return successResponse<ILoginResponse>({res, statusCode:201 ,data:{credentials}})
 }
 
-    signup=async(req: Request, res: Response):Promise<Response> =>{
+signup=async(req: Request, res: Response):Promise<Response> =>{
      let { username, email, password}: ISignupBodyInputsDto = req.body
      const checkUserExist = await this.userModel.findOne({
       filter:{email},
@@ -101,14 +103,14 @@ return res.status(201).json({message:"Done", data: {credentials}})
       throw new Conflict("Email already exists")
      }
      const otp = generateNumberOtp()
-    const user = await this.userModel.createUser({
+   await this.userModel.createUser({
       data:[{username, email, password: await generateHash(password), confirmEmailOtp: await generateHash(String(otp)), gender: req.body.gender}]
     })
     emailEvent.emit("confirmEmail", {to: email, otp})
-     return res.status(201).json({message:"Done", data:{user}})
+     return successResponse({res, statusCode:201})
 }
 
-    confirmEmail=async(req: Request, res: Response):Promise<Response> =>{
+confirmEmail=async(req: Request, res: Response):Promise<Response> =>{
 const {email, otp}: IConfirmEmailBodyInputsDto = req.body
 const user = await this.userModel.findOne({
   filter:{email, confirmEmailOtp:{$exists: true}, confirmedAt:{$exists:false}}
@@ -126,7 +128,7 @@ await this.userModel.updateOne({
     $unset:{confirmEmailOtp: 1}
   }
 })
-     return res.status(201).json({message:"Done"})
+return successResponse({res})
 }
 
 login = async(req: Request, res: Response): Promise<Response> => {
@@ -141,7 +143,7 @@ if(!user.confirmedAt) {
   throw new BadRequest("Verify your account first")
 }
 const credentials = await loginCredentials(user)
-return res.json({message:"Done", data:{credentials}})
+return successResponse<ILoginResponse>({res, data:{credentials}})
 }
 
 sendForgotCode = async(req: Request, res: Response): Promise<Response> => {

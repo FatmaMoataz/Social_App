@@ -8,8 +8,11 @@ import { TokenRepository } from "../../DB/repository/token.repository"
 import { TokenModel } from "../../DB/models/Token.model"
 import { JwtPayload } from "jsonwebtoken"
 import { createPreSignUploadLink, deleteFiles, deleteFolderByPrefix, uploadFiles } from "../utils/multer/s3.config"
-import { BadRequest, Forbidden, Notfound } from "../utils/response/error.response"
+import { BadRequest, Forbidden, Notfound, Unauthorized } from "../utils/response/error.response"
 import { s3Event } from "../utils/multer/s3.multer"
+import { successResponse } from "../utils/response/success.response"
+import { IUserResponse, IProfileImgResponse } from "./user.entities"
+import { ILoginResponse } from "../auth/auth.entities"
 
 class userService {
     private userModel = new UserRepository(UserModel)
@@ -17,10 +20,10 @@ class userService {
     constructor(){}
 
     profile = async(req: Request, res: Response):Promise<Response> => {
-return res.json({message:"Done",data:{
-    user:req.user?._id,
-    decoded: req.decoded?.iat
-}})
+        if(!req.user) {
+throw new Unauthorized("missing user details")
+        }
+return successResponse<IUserResponse>({res, data:{user: req.user}})
     }
 
     logout = async(req: Request, res: Response):Promise<Response> => {
@@ -53,7 +56,7 @@ return res.status(statusCode).json({message:"Done"})
     refreshToken = async(req: Request, res: Response):Promise<Response> => {
 const credentials = await loginCredentials(req.user as HUserDocument)
   await createRevokeToken(req.decoded as JwtPayload)
-return res.status(201).json({message:'Done ✔', data:{credentials}})
+return successResponse<ILoginResponse>({res, statusCode:201 ,data:{credentials}})
     }
 
     profileImg = async(req: Request, res: Response):Promise<Response> => {
@@ -77,10 +80,7 @@ s3Event.emit("trackProfileImgUpload", {
     key,
     expiresIn: 30000
 })
-return res.json({message:"Done",data:{
-    url,
-key
-}})
+return successResponse<IProfileImgResponse>({res, data:{url}})
     }
 
     profileCoverImg = async(req: Request, res: Response):Promise<Response> => {
@@ -101,9 +101,7 @@ throw new BadRequest("Failed to update profile cover images")
 if(req.user?.coverImgs) {
     await deleteFiles({urls: req.user.coverImgs})
 }
-return res.json({message:"Done",data:{
-    urls
-}})
+return successResponse<IUserResponse>({res})
     }
 
     freezeAccount = async(req: Request, res: Response):Promise<Response> => {
@@ -129,7 +127,7 @@ throw new Forbidden("Not authorized user")
         if(!user.matchedCount) {
 throw new Notfound("User not found or Failed to freeze this resource")
         }
-return res.json({message:"Done"})
+return successResponse({res})
     }
 
    restoreAccount = async(req: Request, res: Response):Promise<Response> => {
