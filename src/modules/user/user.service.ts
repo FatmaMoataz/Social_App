@@ -1,14 +1,14 @@
 import type{ Request, Response } from "express"
-import { ILogoutDto } from "./user.dto"
+import { IFreezeAccountDto, IHardDeleteDto, ILogoutDto, IRestoreAccountDto } from "./user.dto"
 import { createRevokeToken, loginCredentials, LogoutEnum } from "../utils/security/token.security"
 import { Types, UpdateQuery } from "mongoose"
-import { HUserDocument, IUser, UserModel } from "../../DB/models/User.model"
+import { HUserDocument, IUser, RoleEnum, UserModel } from "../../DB/models/User.model"
 import { UserRepository } from "../../DB/repository/user.repository"
 import { TokenRepository } from "../../DB/repository/token.repository"
 import { TokenModel } from "../../DB/models/Token.model"
 import { JwtPayload } from "jsonwebtoken"
-import { createPreSignUploadLink, deleteFiles, uploadFiles } from "../utils/multer/s3.config"
-import { BadRequest } from "../utils/response/error.response"
+import { createPreSignUploadLink, deleteFiles, deleteFolderByPrefix, uploadFiles } from "../utils/multer/s3.config"
+import { BadRequest, Forbidden, Notfound } from "../utils/response/error.response"
 import { s3Event } from "../utils/multer/s3.multer"
 
 class userService {
@@ -104,6 +104,72 @@ if(req.user?.coverImgs) {
 return res.json({message:"Done",data:{
     urls
 }})
+    }
+
+    freezeAccount = async(req: Request, res: Response):Promise<Response> => {
+        const {userId} = (req.params as  IFreezeAccountDto) || {}
+        if(userId && req.user?.role !== RoleEnum.admin) {
+throw new Forbidden("Not authorized user")
+        }
+        const user = await this.userModel.updateOne({
+            filter:{
+                _id: userId || req.user?._id,
+                freezedAt: { $exists: false},
+            },
+            update:{
+                freezedAt: new Date(),
+                freezedBy: req.user?._id,
+                changeCredentialsTime: new Date(),
+                $unset: {
+                    restoredAt:1,
+                    restoredBy:1
+                }
+            }
+        })
+        if(!user.matchedCount) {
+throw new Notfound("User not found or Failed to freeze this resource")
+        }
+return res.json({message:"Done"})
+    }
+
+   restoreAccount = async(req: Request, res: Response):Promise<Response> => {
+        const {userId} = req.params as  IRestoreAccountDto
+
+        const user = await this.userModel.updateOne({
+            filter:{
+                _id: userId,
+                freezedBy: { $ne: userId},
+            },
+            update:{
+                restoredAt: new Date(),
+                restoredBy: req.user?._id,
+
+                $unset: {
+                    freezedAt:1,
+                    freezedBy:1
+                }
+            }
+        })
+        if(!user.matchedCount) {
+throw new Notfound("User not found or Failed to restore this resource")
+        }
+return res.json({message:"Done"})
+    }
+
+    hardDeleteAccount = async(req: Request, res: Response):Promise<Response> => {
+        const {userId} = req.params as  IHardDeleteDto
+
+        const user = await this.userModel.deleteOne({
+            filter:{
+                _id: userId,
+                freezedAt:{$exists : true}
+            }
+        })
+        if(!user.deletedCount) {
+            throw new Notfound("user not found or hard delete this resource")
+        }
+await deleteFolderByPrefix({path: `users/${userId}`})
+return res.json({message:"Done"})
     }
 }
 

@@ -97,5 +97,65 @@ class userService {
                 urls
             } });
     };
+    freezeAccount = async (req, res) => {
+        const { userId } = req.params || {};
+        if (userId && req.user?.role !== User_model_1.RoleEnum.admin) {
+            throw new error_response_1.Forbidden("Not authorized user");
+        }
+        const user = await this.userModel.updateOne({
+            filter: {
+                _id: userId || req.user?._id,
+                freezedAt: { $exists: false },
+            },
+            update: {
+                freezedAt: new Date(),
+                freezedBy: req.user?._id,
+                changeCredentialsTime: new Date(),
+                $unset: {
+                    restoredAt: 1,
+                    restoredBy: 1
+                }
+            }
+        });
+        if (!user.matchedCount) {
+            throw new error_response_1.Notfound("User not found or Failed to freeze this resource");
+        }
+        return res.json({ message: "Done" });
+    };
+    restoreAccount = async (req, res) => {
+        const { userId } = req.params;
+        const user = await this.userModel.updateOne({
+            filter: {
+                _id: userId,
+                freezedBy: { $ne: userId },
+            },
+            update: {
+                restoredAt: new Date(),
+                restoredBy: req.user?._id,
+                $unset: {
+                    freezedAt: 1,
+                    freezedBy: 1
+                }
+            }
+        });
+        if (!user.matchedCount) {
+            throw new error_response_1.Notfound("User not found or Failed to restore this resource");
+        }
+        return res.json({ message: "Done" });
+    };
+    hardDeleteAccount = async (req, res) => {
+        const { userId } = req.params;
+        const user = await this.userModel.deleteOne({
+            filter: {
+                _id: userId,
+                freezedAt: { $exists: true }
+            }
+        });
+        if (!user.deletedCount) {
+            throw new error_response_1.Notfound("user not found or hard delete this resource");
+        }
+        await (0, s3_config_1.deleteFolderByPrefix)({ path: `users/${userId}` });
+        return res.json({ message: "Done" });
+    };
 }
 exports.default = new userService();

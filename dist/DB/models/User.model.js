@@ -37,7 +37,11 @@ const userSchema = new mongoose_1.Schema({
     role: { type: String, enum: RoleEnum, default: RoleEnum.user },
     provider: { type: String, enum: ProviderEnum, default: ProviderEnum.SYSTEM },
     updatedAt: { type: Date },
-    createdAt: { type: Date }
+    createdAt: { type: Date },
+    freezedAt: { type: Date },
+    freezedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User" },
+    restoredAt: { type: Date },
+    restoredBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User" },
 }, { timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }

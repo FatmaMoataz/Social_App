@@ -1,4 +1,4 @@
-import { Schema, Document, model, models, HydratedDocument } from "mongoose";
+import { Schema, Document, model, models, HydratedDocument, Types } from "mongoose";
 
 export enum GenderEnum {
   male='male',
@@ -35,6 +35,10 @@ export interface IUser extends Document {
   role:RoleEnum;
   updatedAt?:Date;
   createdAt:Date;
+  freezedAt?:Date;
+  freezedBy?:Types.ObjectId;
+  restoredAt?:Date;
+  restoredBy?:Types.ObjectId;
   provider: ProviderEnum
 
 }
@@ -65,7 +69,12 @@ role:{type:String, enum:RoleEnum, default:RoleEnum.user},
 provider:{type:String, enum:ProviderEnum, default:ProviderEnum.SYSTEM},
 
 updatedAt:{type:Date},
-createdAt:{type:Date}
+createdAt:{type:Date},
+
+  freezedAt:{type:Date},
+  freezedBy:{type:Schema.Types.ObjectId, ref:"User"},
+  restoredAt:{type:Date},
+  restoredBy:{type:Schema.Types.ObjectId, ref:"User"},
  
 }, { timestamps: true,
   toJSON: {virtuals:true},
