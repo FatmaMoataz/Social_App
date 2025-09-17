@@ -1,4 +1,6 @@
 import { Schema, Document, model, models, HydratedDocument, Types } from "mongoose";
+import { generateHash } from "../../modules/utils/security/hash.security";
+import { emailEvent } from "../../modules/utils/email/email.event";
 
 export enum GenderEnum {
   male='male',
@@ -39,7 +41,8 @@ export interface IUser extends Document {
   freezedBy?:Types.ObjectId;
   restoredAt?:Date;
   restoredBy?:Types.ObjectId;
-  provider: ProviderEnum
+  provider: ProviderEnum;
+  slug:string;
 
 }
 
@@ -47,6 +50,7 @@ const userSchema = new Schema<IUser>({
 
 firstname:{type:String, required: true, minLength:2, maxLength:25},
 lastname:{type:String, required: true, minLength:2, maxLength:25},
+slug:{type:String, required: true, minLength:2, maxLength:50},
 
 email:{type:String, required:true, unique:true},
 confirmEmailOtp:{type:String},
@@ -77,15 +81,37 @@ createdAt:{type:Date},
   restoredBy:{type:Schema.Types.ObjectId, ref:"User"},
  
 }, { timestamps: true,
+  strictQuery:true,
   toJSON: {virtuals:true},
   toObject:{virtuals:true}
  });
 
 userSchema.virtual("username").set(function (value:string) {
   const [firstname, lastname] = value.split(' ') || []
-  this.set({firstname, lastname})
+  this.set({firstname, lastname, slug:value.replaceAll(/\s+/g, "-")})
 }).get(function () {
   return this.firstname + " " + this.lastname
+})
+
+userSchema.pre("save", async function(this:HUserDocument & {wasNew:boolean, confirmEmailPlainOtp?:string}, next) {
+this.wasNew = this.isNew
+if(this.isModified("password")) {
+this.password = await generateHash(this.password)
+}
+if(this.isModified("confirmEmailOtp")) {
+this.confirmEmailPlainOtp = this.confirmEmailOtp as string
+this.confirmEmailOtp = await generateHash(this.confirmEmailOtp as string)
+}
+next()
+})
+
+userSchema.post("save", async function(doc, next) {
+const that = this as HUserDocument &{wasNew:boolean, confirmEmailPlainOtp?:string}
+if(that.wasNew && that.confirmEmailPlainOtp) {
+emailEvent.emit("confirmEmail", {to:this.email, otp:that.confirmEmailPlainOtp})
+}
+
+next()
 })
 
 export const UserModel = models.User || model<IUser>("User", userSchema)

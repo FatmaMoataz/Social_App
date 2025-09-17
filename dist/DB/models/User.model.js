@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserModel = exports.ProviderEnum = exports.RoleEnum = exports.GenderEnum = void 0;
 const mongoose_1 = require("mongoose");
+const hash_security_1 = require("../../modules/utils/security/hash.security");
+const email_event_1 = require("../../modules/utils/email/email.event");
 var GenderEnum;
 (function (GenderEnum) {
     GenderEnum["male"] = "male";
@@ -20,6 +22,7 @@ var ProviderEnum;
 const userSchema = new mongoose_1.Schema({
     firstname: { type: String, required: true, minLength: 2, maxLength: 25 },
     lastname: { type: String, required: true, minLength: 2, maxLength: 25 },
+    slug: { type: String, required: true, minLength: 2, maxLength: 50 },
     email: { type: String, required: true, unique: true },
     confirmEmailOtp: { type: String },
     confirmedAt: { type: Date },
@@ -43,13 +46,32 @@ const userSchema = new mongoose_1.Schema({
     restoredAt: { type: Date },
     restoredBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User" },
 }, { timestamps: true,
+    strictQuery: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
 userSchema.virtual("username").set(function (value) {
     const [firstname, lastname] = value.split(' ') || [];
-    this.set({ firstname, lastname });
+    this.set({ firstname, lastname, slug: value.replaceAll(/\s+/g, "-") });
 }).get(function () {
     return this.firstname + " " + this.lastname;
+});
+userSchema.pre("save", async function (next) {
+    this.wasNew = this.isNew;
+    if (this.isModified("password")) {
+        this.password = await (0, hash_security_1.generateHash)(this.password);
+    }
+    if (this.isModified("confirmEmailOtp")) {
+        this.confirmEmailPlainOtp = this.confirmEmailOtp;
+        this.confirmEmailOtp = await (0, hash_security_1.generateHash)(this.confirmEmailOtp);
+    }
+    next();
+});
+userSchema.post("save", async function (doc, next) {
+    const that = this;
+    if (that.wasNew && that.confirmEmailPlainOtp) {
+        email_event_1.emailEvent.emit("confirmEmail", { to: this.email, otp: that.confirmEmailPlainOtp });
+    }
+    next();
 });
 exports.UserModel = mongoose_1.models.User || (0, mongoose_1.model)("User", userSchema);

@@ -1,4 +1,4 @@
-import { CreateOptions, DeleteResult, FlattenMaps, HydratedDocument, Model, MongooseUpdateQueryOptions, ProjectionType, QueryOptions, RootFilterQuery, Types, UpdateQuery, UpdateWriteOpResult } from "mongoose";
+import { CreateOptions, DeleteResult, FlattenMaps, HydratedDocument, Model, MongooseUpdateQueryOptions, PopulateOptions, ProjectionType, QueryOptions, RootFilterQuery, Types, UpdateQuery, UpdateWriteOpResult } from "mongoose";
 
 export type Lean<T> = HydratedDocument<FlattenMaps<T>>
 
@@ -19,6 +19,10 @@ async findOne({filter, select, options} : {
 
     async create({data,options}: {data: Partial<TDocument>[], options?:CreateOptions | undefined}):Promise<HydratedDocument<TDocument>[] | undefined >{
        return await this.model.create(data, options)
+    }
+
+    async insertMany({data}: {data: Partial<TDocument>[]}):Promise<HydratedDocument<TDocument>[]>{
+       return await this.model.insertMany(data) as HydratedDocument<TDocument>[]
     }
 
     async updateOne({filter, update, options} : {
@@ -44,6 +48,41 @@ filter: RootFilterQuery<TDocument>
 }): Promise<DeleteResult> {
 
     return await this.model.deleteOne(filter)
+}
+
+async find({filter, select, options} : {
+    filter?: RootFilterQuery<TDocument>, 
+    select?: ProjectionType<TDocument>,
+    options?:QueryOptions<TDocument> | null
+}): Promise<Lean<TDocument>[] | HydratedDocument<TDocument>[] | []> {
+    const doc = this.model.find(filter || {}).select(select || "")
+    if(options?.populate) {
+        doc.populate(options.populate as PopulateOptions[])
+    }
+    if(options?.skip) {
+        doc.skip(options.skip)
+    }
+    if(options?.limit) {
+doc.limit(options.limit)
+    }
+    if(options?.lean) {
+        doc.lean()
+    }
+    return await doc.exec()
+}
+
+    async findOneAndDelete({filter} : {
+    filter: RootFilterQuery<TDocument>
+}): Promise<HydratedDocument<TDocument> | null> {
+
+    return await this.model.findOneAndDelete(filter)
+}
+
+    async deleteMany({filter} : {
+filter: RootFilterQuery<TDocument>
+}): Promise<DeleteResult> {
+
+    return await this.model.deleteMany(filter)
 }
  
 }

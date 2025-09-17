@@ -16,6 +16,9 @@ class DatabaseRepository {
     async create({ data, options }) {
         return await this.model.create(data, options);
     }
+    async insertMany({ data }) {
+        return await this.model.insertMany(data);
+    }
     async updateOne({ filter, update, options }) {
         return await this.model.updateOne(filter, { ...update, $inc: { __v: 1 } }, options);
     }
@@ -24,6 +27,28 @@ class DatabaseRepository {
     }
     async deleteOne({ filter }) {
         return await this.model.deleteOne(filter);
+    }
+    async find({ filter, select, options }) {
+        const doc = this.model.find(filter || {}).select(select || "");
+        if (options?.populate) {
+            doc.populate(options.populate);
+        }
+        if (options?.skip) {
+            doc.skip(options.skip);
+        }
+        if (options?.limit) {
+            doc.limit(options.limit);
+        }
+        if (options?.lean) {
+            doc.lean();
+        }
+        return await doc.exec();
+    }
+    async findOneAndDelete({ filter }) {
+        return await this.model.findOneAndDelete(filter);
+    }
+    async deleteMany({ filter }) {
+        return await this.model.deleteMany(filter);
     }
 }
 exports.DatabaseRepository = DatabaseRepository;

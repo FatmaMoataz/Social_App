@@ -8,8 +8,9 @@ import express from "express"
 import cors from "cors"
 import helmet from "helmet"
 import {rateLimit} from 'express-rate-limit'
-import authController from './modules/auth/auth.controller'
-import userController from './modules/user/user.controller'
+
+import {authRouter, userRouter, postRouter} from './modules'
+
 import { BadRequest, globalErrorHandling } from './modules/utils/response/error.response'
 
 import connectDB from './DB/connection.db.js'
@@ -39,8 +40,9 @@ app.get('/',(req:Request, res:Response) => {
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} backend landing page`})
 })
 // modules
-app.use("/auth", authController)
-app.use("/user", userController)
+app.use("/auth", authRouter)
+app.use("/user", userRouter)
+app.use("/post", postRouter)
 
 app.use(globalErrorHandling)
 
@@ -69,6 +71,7 @@ return res.json({message:"Done", data:{url}})
 
 // invalid route
 app.use("{/*dummy}",(req:Request, res:Response) => {return res.status(404).json({message:'Invalid routing'})})
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);  
 })

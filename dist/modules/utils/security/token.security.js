@@ -5,9 +5,8 @@ const uuid_1 = require("uuid");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const User_model_1 = require("../../../DB/models/User.model");
 const error_response_1 = require("../response/error.response");
-const user_repository_1 = require("../../../DB/repository/user.repository");
 const Token_model_1 = require("../../../DB/models/Token.model");
-const token_repository_1 = require("../../../DB/repository/token.repository");
+const repository_1 = require("../../../DB/repository");
 var SignatureLevelEnum;
 (function (SignatureLevelEnum) {
     SignatureLevelEnum["Bearer"] = "bearer";
@@ -69,28 +68,29 @@ exports.getSignature = getSignature;
 const loginCredentials = async (user) => {
     const signatureLevel = await (0, exports.detectSignatureLevel)(user.role);
     const signatures = await (0, exports.getSignature)(signatureLevel);
-    console.log(signatures);
     const jwtid = (0, uuid_1.v4)();
     const access_token = await (0, exports.generateToken)({
-        payload: { _id: user._id },
+        payload: { _id: user._id, jti: jwtid },
         secret: signatures.access_signature,
-        options: { expiresIn: Number(process.env.ACCESS_TOKEN_EXPIRES_IN), jwtid },
+        options: { expiresIn: Number(process.env.ACCESS_TOKEN_EXPIRES_IN) },
     });
     const refresh_token = await (0, exports.generateToken)({
-        payload: { _id: user._id },
+        payload: { _id: user._id, jti: jwtid },
         secret: signatures.refresh_signature,
-        options: { expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRES_IN), jwtid },
+        options: { expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRES_IN) },
     });
     return { access_token, refresh_token };
 };
 exports.loginCredentials = loginCredentials;
 const decodeToken = async ({ authorization, tokenType = TokenEnum.access, }) => {
-    const userModel = new user_repository_1.UserRepository(User_model_1.UserModel);
-    const tokenModel = new user_repository_1.UserRepository(Token_model_1.TokenModel);
+    if (!authorization)
+        throw new error_response_1.Unauthorized("Missing authorization header");
     const [bearerKey, token] = authorization.split(" ");
     if (!bearerKey || !token) {
         throw new error_response_1.Unauthorized("Missing token parts");
     }
+    const userModel = new repository_1.UserRepository(User_model_1.UserModel);
+    const tokenModel = new repository_1.TokenRepository(Token_model_1.TokenModel);
     const signatures = await (0, exports.getSignature)(bearerKey);
     const decoded = await (0, exports.verifyToken)({
         token,
@@ -98,7 +98,7 @@ const decodeToken = async ({ authorization, tokenType = TokenEnum.access, }) => 
             ? signatures.refresh_signature
             : signatures.access_signature,
     });
-    if (!decoded?._id || !decoded?.iat) {
+    if (!decoded?._id || !decoded?.jti || !decoded?.iat) {
         throw new error_response_1.BadRequest("Invalid token payload");
     }
     if (await tokenModel.findOne({ filter: { jti: decoded.jti } })) {
@@ -106,16 +106,16 @@ const decodeToken = async ({ authorization, tokenType = TokenEnum.access, }) => 
     }
     const user = await userModel.findOne({ filter: { _id: decoded._id } });
     if (!user) {
-        throw new error_response_1.BadRequest("Vot registered account");
+        throw new error_response_1.BadRequest("Not a registered account");
     }
-    if ((user.changeCredentialsTime?.getTime()) || 0 > decoded.iat * 1000) {
+    if ((user.changeCredentialsTime?.getTime() || 0) > decoded.iat * 1000) {
         throw new error_response_1.Unauthorized("Invalid or Old login credentials");
     }
     return { user, decoded };
 };
 exports.decodeToken = decodeToken;
 const createRevokeToken = async (decoded) => {
-    const tokenModel = new token_repository_1.TokenRepository(Token_model_1.TokenModel);
+    const tokenModel = new repository_1.TokenRepository(Token_model_1.TokenModel);
     const [result] = await tokenModel.create({
         data: [
             {
