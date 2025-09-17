@@ -17,6 +17,8 @@ export enum ProviderEnum {
   SYSTEM='SYSTEM'
 }
 
+export type HUserDocument = HydratedDocument<IUser>
+
 export interface IUser extends Document {
 
   firstname: string;
@@ -114,5 +116,14 @@ emailEvent.emit("confirmEmail", {to:this.email, otp:that.confirmEmailPlainOtp})
 next()
 })
 
+userSchema.pre(["find", "findOne"], function(next) {
+  const query = this.getQuery()
+if(query.paranoid === false) {
+this.setQuery({...query})
+}
+else {
+  this.setQuery({...query, freezedAt:{$exists:false}})
+}
+  next()
+})
 export const UserModel = models.User || model<IUser>("User", userSchema)
-export type HUserDocument = HydratedDocument<IUser>
