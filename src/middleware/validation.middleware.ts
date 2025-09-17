@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { ZodError, ZodType } from "zod";
 import { BadRequest } from "../modules/utils/response/error.response";
 import { z } from "zod";
+import { Types } from "mongoose";
 
 type KeyReqType = keyof Request; // 'body' | 'params' | 'query' | 'file'
 type SchemaType = Partial<Record<KeyReqType, ZodType>>;
@@ -9,7 +10,7 @@ type ValidationErrorsType = Array<{
   key: KeyReqType;
   issues: Array<{
     message: string;
-    path: string | number | undefined;
+    path: (string | number | undefined)[];
   }>;
 }>;
 
@@ -19,7 +20,12 @@ export const validation = (schema: SchemaType) => {
 
     for (const key of Object.keys(schema) as KeyReqType[]) {
       if (!schema[key]) continue;
-
+if(req.file) {
+  req.body.attachment = req.file
+}
+if(req.files) {
+  req.body.attachments = req.files
+}
       const validationResult = schema[key]!.safeParse(req[key]);
       if (!validationResult.success) {
         const errors = validationResult.error as ZodError;
@@ -27,7 +33,7 @@ export const validation = (schema: SchemaType) => {
           key,
           issues: errors.issues.map((issue) => ({
             message: issue.message,
-            path: issue.path[0], 
+            path: issue.path, 
           })),
         });
       }
@@ -54,4 +60,26 @@ export const generalFields = {
           "Password must contain at least 8 characters, one uppercase, one lowercase, and one number"
         ),
       confirmPassword: z.string(),
+      id:
+      
+
+z.string().refine(data => {
+                Types.ObjectId.isValid(data)
+            },{error:"Invalid objectId format"})
+
+
+
+      file:function (mimetype:string[]) {
+        return z.strictObject({
+        fieldname:z.string(),
+        originalname:z.string(),
+        encoding:z.string(),
+        mimetype:z.enum(mimetype),
+        buffer:z.any().optional(),
+        path:z.string().optional(),
+        size:z.number()
+      }).refine(data => {
+return data.buffer || data.path
+      },{error:"Neither path or buffer is available", path:["file"]})
+      }
 }
