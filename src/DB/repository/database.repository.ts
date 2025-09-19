@@ -30,7 +30,9 @@ async findOne({filter, select, options} : {
     update: UpdateQuery<TDocument>,
     options?:MongooseUpdateQueryOptions | null
 }): Promise<UpdateWriteOpResult> {
-
+if(Array.isArray(update)) {
+ return await this.model.updateOne(filter, update, options)
+}
     return await this.model.updateOne(filter, {...update, $inc:{__v:1}}, options)
 }
 

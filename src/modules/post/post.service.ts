@@ -62,23 +62,41 @@ if(!post) {
 throw new Notfound("Fail to find matching result")
 }
 
-        if(req.body.tags?.length && (await this.userModel.find({filter:{_id:{$in:req.body.tags}, paranoid:false}})).length !== req.body.tags.length) {
+        if(req.body.tags?.length && (await this.userModel.find({filter:{_id:{$in:req.body.tags, $ne:req.user?._id}, paranoid:false}})).length !== req.body.tags.length) {
 throw new Notfound("Some of the mentioned users doesn't exist")
         }
         let attachments:string[]= []
         if(req.files?.length) {
-attachments = await uploadFiles({files:req.files as Express.Multer.File[], path:`users/${post.createdBy}/post/${assetsFolderId}`})
-        }
+attachments = await uploadFiles({files:req.files as Express.Multer.File[], path:`users/${post.createdBy}/post/${req.body.assetsFolderId}`})     
+}
 const updatedPost = await this.postModel.updateOne({
     filter:{
         _id:post._id
     },
     update:{
-        content:req.body.content,
-        allowComments:req.body.allowComments || post.allowComments,
-        availability: req.body.availability || post.availability,
-        $addToSet:{attachments:{$each:attachments || []}, tags:{$each:req.body.tags || []}},
-        $pull:{attachments:{$in:req.body.removedAttachments}, tags:{$in:req.body.removedTags}},
+        $set:{
+            content:req.body.content,
+            allowComments:req.body.allowComments || post.allowComments,
+            availability: req.body.availability || post.availability,
+            __v:{$add:["$__v", 1]},
+            attachments:{
+                $setUnion:[{
+                    $setDifference:["$attachments", req.body.removedAttachments || []]
+                }],
+                attachments,
+            },
+            tags:{
+                $setUnion:[{
+                    $setDifference:["$tags", (req.body.removedTags || []).map((tag:string) => {
+return Types.ObjectId.createFromHexString(tag)
+                    })],
+                },
+                (req.body.tags || []).map((tag:string) => {
+return Types.ObjectId.createFromHexString(tag)
+                    }),
+            ],
+            },
+        }
     }
 })
         if(!updatedPost.matchedCount) {
