@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PostModel = exports.AvailabilityEnum = exports.AllowCommentsEnum = void 0;
+exports.PostModel = exports.LikeActionEnum = exports.AvailabilityEnum = exports.AllowCommentsEnum = void 0;
 const mongoose_1 = require("mongoose");
 var AllowCommentsEnum;
 (function (AllowCommentsEnum) {
@@ -13,6 +13,11 @@ var AvailabilityEnum;
     AvailabilityEnum["friends"] = "friends";
     AvailabilityEnum["onlyMe"] = "only-me";
 })(AvailabilityEnum || (exports.AvailabilityEnum = AvailabilityEnum = {}));
+var LikeActionEnum;
+(function (LikeActionEnum) {
+    LikeActionEnum["like"] = "like";
+    LikeActionEnum["unlike"] = "unlike";
+})(LikeActionEnum || (exports.LikeActionEnum = LikeActionEnum = {}));
 const postSchema = new mongoose_1.Schema({
     content: { type: String, minLength: 2, maxlength: 50000, required: function () {
             return !this.attachments?.length;
@@ -29,6 +34,17 @@ const postSchema = new mongoose_1.Schema({
     restoredAt: Date,
     restoredBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User" }
 }, {
-    timestamps: true
+    timestamps: true,
+    strictQuery: true
+});
+postSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
+    const query = this.getQuery();
+    if (query.paranoid === false) {
+        this.setQuery({ ...query });
+    }
+    else {
+        this.setQuery({ ...query, freezedAt: { $exists: false } });
+    }
+    next();
 });
 exports.PostModel = mongoose_1.models.Post || (0, mongoose_1.model)("Post", postSchema);

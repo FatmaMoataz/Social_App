@@ -1,5 +1,5 @@
 import {z} from 'zod'
-import { AllowCommentsEnum, AvailabilityEnum } from '../../DB/models/Post.model'
+import { AllowCommentsEnum, AvailabilityEnum, LikeActionEnum } from '../../DB/models/Post.model'
 import { generalFields } from '../../middleware/validation.middleware'
 import { fileValidation } from '../utils/multer/cloud.multer'
 
@@ -26,4 +26,13 @@ ctx.addIssue({
 })
 }
     })
+}
+
+export const likePost = {
+params: z.strictObject({
+    postId: generalFields.id
+}),
+query: z.strictObject({
+    action: z.enum(LikeActionEnum).default(LikeActionEnum.like)
+})
 }

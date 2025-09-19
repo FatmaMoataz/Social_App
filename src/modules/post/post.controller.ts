@@ -12,4 +12,8 @@ router.post('/', authentication()
 validation(validators.createPost),
 postService.createPost )
 
+router.patch('/:postId/like', authentication(),
+validation(validators.likePost),
+postService.likePost)
+
 export default router

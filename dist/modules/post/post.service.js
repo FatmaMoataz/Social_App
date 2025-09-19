@@ -38,5 +38,21 @@ class PostService {
         }
         return (0, success_response_1.successResponse)({ res, statusCode: 201 });
     };
+    likePost = async (req, res) => {
+        const { postId } = req.params;
+        const { action } = req.query;
+        let update = { $addToSet: { likes: req.user?._id } };
+        if (action === Post_model_1.LikeActionEnum.unlike) {
+            update = { $pull: { likes: req.user?._id } };
+        }
+        const post = await this.postModel.findOneAndUpdate({
+            filter: { _id: postId },
+            update
+        });
+        if (!post) {
+            throw new error_response_1.Notfound("Invalid postId or post doesn't exist");
+        }
+        return (0, success_response_1.successResponse)({ res });
+    };
 }
 exports.default = new PostService;

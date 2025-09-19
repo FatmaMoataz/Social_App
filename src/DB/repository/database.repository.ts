@@ -43,6 +43,15 @@ async findOne({filter, select, options} : {
     return await this.model.findByIdAndUpdate(id, {...update, $inc:{__v:1}}, options)
 }
 
+    async findOneAndUpdate({filter, update, options={new: true}} : {
+    filter?:RootFilterQuery<TDocument>, 
+    update?: UpdateQuery<TDocument>,
+    options?: QueryOptions<TDocument>
+}): Promise<HydratedDocument<TDocument> | Lean<TDocument> | null> {
+
+    return await this.model.findOneAndUpdate(filter, {...update, $inc:{__v:1}}, options)
+}
+
     async deleteOne({filter} : {
 filter: RootFilterQuery<TDocument>
 }): Promise<DeleteResult> {

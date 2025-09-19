@@ -1,11 +1,13 @@
 import type{ Request, Response } from "express";
 import { successResponse } from "../utils/response/success.response";
-import { PostModel } from "../../DB/models/Post.model";
+import { HPostDocument, LikeActionEnum, PostModel } from "../../DB/models/Post.model";
 import { PostRepository, UserRepository } from "../../DB/repository";
 import { UserModel } from "../../DB/models/User.model";
 import { BadRequest, Notfound } from "../utils/response/error.response";
 import { deleteFiles, uploadFiles } from "../utils/multer/s3.config";
 import {v4 as uuid} from 'uuid'
+import { LikePostQueryInputsDto } from "./post.dto";
+import { UpdateQuery } from "mongoose";
 
 class PostService {
     private userModel = new UserRepository(UserModel)
@@ -37,6 +39,23 @@ await deleteFiles({urls:attachments})
 throw new BadRequest("Failed to create this post")
         }
 return successResponse({res, statusCode:201})
+    }
+
+    likePost = async(req: Request, res:Response):Promise<Response> => {
+        const {postId} = req.params as {postId: string}
+        const {action} = req.query as LikePostQueryInputsDto
+        let update: UpdateQuery<HPostDocument> = {$addToSet:{likes: req.user?._id}}
+        if(action === LikeActionEnum.unlike) {
+ update = {$pull:{likes: req.user?._id}}
+        } 
+        const post = await this.postModel.findOneAndUpdate({
+filter:{_id: postId},
+update
+        })
+        if(!post) {
+throw new Notfound("Invalid postId or post doesn't exist")
+        }
+return successResponse({res})
     }
 }
 

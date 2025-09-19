@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createPost = void 0;
+exports.likePost = exports.createPost = void 0;
 const zod_1 = require("zod");
 const Post_model_1 = require("../../DB/models/Post.model");
 const validation_middleware_1 = require("../../middleware/validation.middleware");
@@ -27,5 +27,13 @@ exports.createPost = {
                 message: "Duplicated tagged users"
             });
         }
+    })
+};
+exports.likePost = {
+    params: zod_1.z.strictObject({
+        postId: validation_middleware_1.generalFields.id
+    }),
+    query: zod_1.z.strictObject({
+        action: zod_1.z.enum(Post_model_1.LikeActionEnum).default(Post_model_1.LikeActionEnum.like)
     })
 };

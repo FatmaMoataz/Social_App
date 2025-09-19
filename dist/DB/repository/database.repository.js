@@ -25,6 +25,9 @@ class DatabaseRepository {
     async findByIdAndUpdate({ id, update, options = { new: true } }) {
         return await this.model.findByIdAndUpdate(id, { ...update, $inc: { __v: 1 } }, options);
     }
+    async findOneAndUpdate({ filter, update, options = { new: true } }) {
+        return await this.model.findOneAndUpdate(filter, { ...update, $inc: { __v: 1 } }, options);
+    }
     async deleteOne({ filter }) {
         return await this.model.deleteOne(filter);
     }
