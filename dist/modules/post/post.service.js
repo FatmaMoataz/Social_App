@@ -48,6 +48,49 @@ class PostService {
         }
         return (0, success_response_1.successResponse)({ res, statusCode: 201 });
     };
+    updatePost = async (req, res) => {
+        const { postId } = req.params;
+        const post = await this.postModel.findOne({
+            filter: {
+                _id: postId,
+                createdBy: req.user?._id
+            }
+        });
+        if (!post) {
+            throw new error_response_1.Notfound("Fail to find matching result");
+        }
+        if (req.body.tags?.length && (await this.userModel.find({ filter: { _id: { $in: req.body.tags }, paranoid: false } })).length !== req.body.tags.length) {
+            throw new error_response_1.Notfound("Some of the mentioned users doesn't exist");
+        }
+        let attachments = [];
+        if (req.files?.length) {
+            attachments = await (0, s3_config_1.uploadFiles)({ files: req.files, path: `users/${post.createdBy}/post/${assetsFolderId}` });
+        }
+        const updatedPost = await this.postModel.updateOne({
+            filter: {
+                _id: post._id
+            },
+            update: {
+                content: req.body.content,
+                allowComments: req.body.allowComments || post.allowComments,
+                availability: req.body.availability || post.availability,
+                $addToSet: { attachments: { $each: attachments || [] }, tags: { $each: req.body.tags || [] } },
+                $pull: { attachments: { $in: req.body.removedAttachments }, tags: { $in: req.body.removedTags } },
+            }
+        });
+        if (!updatedPost.matchedCount) {
+            if (attachments.length) {
+                await (0, s3_config_1.deleteFiles)({ urls: attachments });
+            }
+            throw new error_response_1.BadRequest("Failed to generate this post");
+        }
+        else {
+            if (req.body.removedAttachments?.length) {
+                await (0, s3_config_1.deleteFiles)({ urls: req.body.removedAttachments });
+            }
+        }
+        return (0, success_response_1.successResponse)({ res, statusCode: 201 });
+    };
     likePost = async (req, res) => {
         const { postId } = req.params;
         const { action } = req.query;

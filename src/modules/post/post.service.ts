@@ -7,7 +7,7 @@ import { BadRequest, Notfound } from "../utils/response/error.response";
 import { deleteFiles, uploadFiles } from "../utils/multer/s3.config";
 import {v4 as uuid} from 'uuid'
 import { LikePostQueryInputsDto } from "./post.dto";
-import { UpdateQuery } from "mongoose";
+import { Types, UpdateQuery } from "mongoose";
 
 export const postAvailability = (req:Request) => {
     return [
@@ -47,6 +47,51 @@ await deleteFiles({urls:attachments})
 }
 throw new BadRequest("Failed to create this post")
         }
+return successResponse({res, statusCode:201})
+    }
+
+     updatePost = async(req: Request, res:Response):Promise<Response> => {
+const {postId} = req.params as unknown as {postId:Types.ObjectId}
+const post = await this.postModel.findOne({
+    filter:{
+        _id: postId,
+        createdBy: req.user?._id
+    }
+})
+if(!post) {
+throw new Notfound("Fail to find matching result")
+}
+
+        if(req.body.tags?.length && (await this.userModel.find({filter:{_id:{$in:req.body.tags}, paranoid:false}})).length !== req.body.tags.length) {
+throw new Notfound("Some of the mentioned users doesn't exist")
+        }
+        let attachments:string[]= []
+        if(req.files?.length) {
+attachments = await uploadFiles({files:req.files as Express.Multer.File[], path:`users/${post.createdBy}/post/${assetsFolderId}`})
+        }
+const updatedPost = await this.postModel.updateOne({
+    filter:{
+        _id:post._id
+    },
+    update:{
+        content:req.body.content,
+        allowComments:req.body.allowComments || post.allowComments,
+        availability: req.body.availability || post.availability,
+        $addToSet:{attachments:{$each:attachments || []}, tags:{$each:req.body.tags || []}},
+        $pull:{attachments:{$in:req.body.removedAttachments}, tags:{$in:req.body.removedTags}},
+    }
+})
+        if(!updatedPost.matchedCount) {
+if(attachments.length) {
+await deleteFiles({urls:attachments})
+}
+throw new BadRequest("Failed to generate this post")
+        }
+        else {
+    if(req.body.removedAttachments?.length) {
+        await deleteFiles({urls:req.body.removedAttachments})
+    }
+}
 return successResponse({res, statusCode:201})
     }
 

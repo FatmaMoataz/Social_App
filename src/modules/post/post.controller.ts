@@ -12,6 +12,10 @@ router.post('/', authentication()
 validation(validators.createPost),
 postService.createPost )
 
+router.patch('/:postId', authentication(),
+validation(validators.updatePost),
+postService.updatePost)
+
 router.patch('/:postId/like', authentication(),
 validation(validators.likePost),
 postService.likePost)
