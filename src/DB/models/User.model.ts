@@ -43,6 +43,7 @@ export interface IUser extends Document {
   freezedBy?:Types.ObjectId;
   restoredAt?:Date;
   restoredBy?:Types.ObjectId;
+  friends:Types.ObjectId[];
   provider: ProviderEnum;
   slug:string;
 
@@ -81,6 +82,7 @@ createdAt:{type:Date},
   freezedBy:{type:Schema.Types.ObjectId, ref:"User"},
   restoredAt:{type:Date},
   restoredBy:{type:Schema.Types.ObjectId, ref:"User"},
+  friends:[{type:Schema.Types.ObjectId, ref:"User"}],
  
 }, { timestamps: true,
   strictQuery:true,

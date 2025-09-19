@@ -45,6 +45,7 @@ const userSchema = new mongoose_1.Schema({
     freezedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User" },
     restoredAt: { type: Date },
     restoredBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User" },
+    friends: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "User" }],
 }, { timestamps: true,
     strictQuery: true,
     toJSON: { virtuals: true },

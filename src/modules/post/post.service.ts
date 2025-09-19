@@ -1,6 +1,6 @@
 import type{ Request, Response } from "express";
 import { successResponse } from "../utils/response/success.response";
-import { HPostDocument, LikeActionEnum, PostModel } from "../../DB/models/Post.model";
+import { AvailabilityEnum, HPostDocument, LikeActionEnum, PostModel } from "../../DB/models/Post.model";
 import { PostRepository, UserRepository } from "../../DB/repository";
 import { UserModel } from "../../DB/models/User.model";
 import { BadRequest, Notfound } from "../utils/response/error.response";
@@ -8,6 +8,15 @@ import { deleteFiles, uploadFiles } from "../utils/multer/s3.config";
 import {v4 as uuid} from 'uuid'
 import { LikePostQueryInputsDto } from "./post.dto";
 import { UpdateQuery } from "mongoose";
+
+export const postAvailability = (req:Request) => {
+    return [
+        {availability:AvailabilityEnum.public},
+        {availability:AvailabilityEnum.onlyMe, createdBy: req.user?._id},
+        {availability:AvailabilityEnum.friends, createdBy: {$in:[...(req.user?.friends || []), req.user?._id]}},
+        {availability:{$ne:AvailabilityEnum.onlyMe}, tags: {$in:req.user?._id}},
+    ]
+}
 
 class PostService {
     private userModel = new UserRepository(UserModel)
@@ -49,7 +58,9 @@ return successResponse({res, statusCode:201})
  update = {$pull:{likes: req.user?._id}}
         } 
         const post = await this.postModel.findOneAndUpdate({
-filter:{_id: postId},
+filter:{_id: postId,
+    $or: postAvailability(req)
+},
 update
         })
         if(!post) {
@@ -59,4 +70,4 @@ return successResponse({res})
     }
 }
 
-export default new PostService
+export const postService = new PostService()

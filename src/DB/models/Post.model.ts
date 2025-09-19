@@ -45,6 +45,8 @@ const postSchema = new Schema<IPost>({
     likes:[{type:Schema.Types.ObjectId, ref:"User"}],
     tags: [{type:Schema.Types.ObjectId, ref:"User"}],
     createdBy: {type:Schema.Types.ObjectId, ref:"User", required:true},
+    // except: [{type:Schema.Types.ObjectId, ref:"User"}],
+    // only: [{type:Schema.Types.ObjectId, ref:"User"}],
     freezedAt:Date,
     freezedBy: {type:Schema.Types.ObjectId, ref:"User"},
     restoredAt:Date,
@@ -52,6 +54,17 @@ const postSchema = new Schema<IPost>({
 }, {
     timestamps:true,
     strictQuery:true
+})
+
+postSchema.pre(["find", "findOne"], function(next) {
+  const query = this.getQuery()
+if(query.paranoid === false) {
+this.setQuery({...query})
+}
+else {
+  this.setQuery({...query, freezedAt:{$exists:false}})
+}
+  next()
 })
 
 postSchema.pre(["findOneAndUpdate", "updateOne"], function(next) {
@@ -64,4 +77,5 @@ else {
 }
 next()
 })
+
 export const PostModel = models.Post || model<IPost>("Post", postSchema)

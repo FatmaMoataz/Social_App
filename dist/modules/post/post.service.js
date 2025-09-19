@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.postService = exports.postAvailability = void 0;
 const success_response_1 = require("../utils/response/success.response");
 const Post_model_1 = require("../../DB/models/Post.model");
 const repository_1 = require("../../DB/repository");
@@ -7,6 +8,15 @@ const User_model_1 = require("../../DB/models/User.model");
 const error_response_1 = require("../utils/response/error.response");
 const s3_config_1 = require("../utils/multer/s3.config");
 const uuid_1 = require("uuid");
+const postAvailability = (req) => {
+    return [
+        { availability: Post_model_1.AvailabilityEnum.public },
+        { availability: Post_model_1.AvailabilityEnum.onlyMe, createdBy: req.user?._id },
+        { availability: Post_model_1.AvailabilityEnum.friends, createdBy: { $in: [...(req.user?.friends || []), req.user?._id] } },
+        { availability: { $ne: Post_model_1.AvailabilityEnum.onlyMe }, tags: { $in: req.user?._id } },
+    ];
+};
+exports.postAvailability = postAvailability;
 class PostService {
     userModel = new repository_1.UserRepository(User_model_1.UserModel);
     postModel = new repository_1.PostRepository(Post_model_1.PostModel);
@@ -46,7 +56,9 @@ class PostService {
             update = { $pull: { likes: req.user?._id } };
         }
         const post = await this.postModel.findOneAndUpdate({
-            filter: { _id: postId },
+            filter: { _id: postId,
+                $or: (0, exports.postAvailability)(req)
+            },
             update
         });
         if (!post) {
@@ -55,4 +67,4 @@ class PostService {
         return (0, success_response_1.successResponse)({ res });
     };
 }
-exports.default = new PostService;
+exports.postService = new PostService();

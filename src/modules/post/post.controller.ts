@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as validators from './post.validation'
 import { authentication } from "../../middleware/authentication.middleware";
-import postService from "./post.service";
+import {postService} from "./post.service";
 import { cloudFileUpload, fileValidation } from "../utils/multer/cloud.multer";
 import { validation } from "../../middleware/validation.middleware";
 
