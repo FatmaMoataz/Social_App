@@ -1,14 +1,54 @@
 import { Request, Response } from "express";
 import { successResponse } from "../utils/response/success.response";
 import { CommentRepository, PostRepository, UserRepository } from "../../DB/repository";
-import { CommentModel, PostModel, UserModel } from "../../DB/models";
+import { AllowCommentsEnum, CommentModel, PostModel, UserModel } from "../../DB/models";
+import { Types } from "mongoose";
+import { postAvailability } from "../post";
+import { BadRequest, Notfound } from "../utils/response/error.response";
+import { deleteFiles, uploadFiles } from "../utils/multer/s3.config";
 
 class CommentService {
     private userModel = new UserRepository(UserModel)
     private postModel = new PostRepository(PostModel)
     private commentModel = new CommentRepository(CommentModel)
     constructor(){}
-    createComment = async(req: Request, res:Response):Promise<Response> => {
+
+   createComment = async(req: Request, res:Response):Promise<Response> => {
+
+    const {postId} = req.params as unknown as {postId:Types.ObjectId}
+    const post = await this.postModel.findOne({
+        filter:{
+            _id:postId,
+            allowComments: AllowCommentsEnum.allow,
+            $or: postAvailability(req)
+        }
+    })
+    if(!post) {
+        throw new Notfound("Failed to find matching result")
+    }
+        if(req.body.tags?.length && (await this.userModel.find({filter:{_id:{$in:req.body.tags}, paranoid:false}})).length !== req.body.tags.length) {
+throw new Notfound("Some of the mentioned users doesn't exist")
+        }
+        let attachments:string[]= []
+        if(req.files?.length) {
+attachments = await uploadFiles({files:req.files as Express.Multer.File[], path:`users/${post.createdBy}/post/${post.assetsFolderId}`})
+        }
+        const [comment] = await this.commentModel.create({
+            data:[
+                {
+                    ...req.body,
+                    attachments,
+                    postId,
+                    createdBy:req.user?._id
+                }
+            ]
+        }) || []
+        if(!comment) {
+if(attachments.length) {
+await deleteFiles({urls:attachments})
+}
+throw new BadRequest("Failed to create this comment")
+        }
 return successResponse({res, statusCode:201})
     }
 }
