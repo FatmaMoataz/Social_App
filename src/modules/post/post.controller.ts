@@ -4,8 +4,11 @@ import { authentication } from "../../middleware/authentication.middleware";
 import {postService} from "./post.service";
 import { cloudFileUpload, fileValidation } from "../utils/multer/cloud.multer";
 import { validation } from "../../middleware/validation.middleware";
+import { commentRouter } from "../comment";
 
 const router = Router()
+
+router.use("/:postId/comment", commentRouter)
 
 router.get('/', authentication(),
 postService.postList )
