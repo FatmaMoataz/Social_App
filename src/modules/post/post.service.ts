@@ -50,7 +50,7 @@ throw new BadRequest("Failed to create this post")
 return successResponse({res, statusCode:201})
     }
 
-     updatePost = async(req: Request, res:Response):Promise<Response> => {
+    updatePost = async(req: Request, res:Response):Promise<Response> => {
 const {postId} = req.params as unknown as {postId:Types.ObjectId}
 const post = await this.postModel.findOne({
     filter:{
@@ -130,6 +130,21 @@ update
 throw new Notfound("Invalid postId or post doesn't exist")
         }
 return successResponse({res})
+    }
+
+    postList = async(req: Request, res:Response):Promise<Response> => {
+        let {page, size} = req.query as unknown as {
+            page:number,
+            size:number
+        }
+        const posts = await this.postModel.paginate({
+filter:{
+    $or: postAvailability(req)
+},
+page,
+size
+        })
+return successResponse({res, data:{posts}})
     }
 }
 

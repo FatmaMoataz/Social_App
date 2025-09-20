@@ -128,5 +128,16 @@ class PostService {
         }
         return (0, success_response_1.successResponse)({ res });
     };
+    postList = async (req, res) => {
+        let { page, size } = req.query;
+        const posts = await this.postModel.paginate({
+            filter: {
+                $or: (0, exports.postAvailability)(req)
+            },
+            page,
+            size
+        });
+        return (0, success_response_1.successResponse)({ res, data: { posts } });
+    };
 }
 exports.postService = new PostService();

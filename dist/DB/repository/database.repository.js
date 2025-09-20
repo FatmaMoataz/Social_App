@@ -50,6 +50,19 @@ class DatabaseRepository {
         }
         return await doc.exec();
     }
+    async paginate({ filter = {}, select, options = {}, page = "all", size = 5 }) {
+        let docsCount = undefined;
+        let pages = undefined;
+        if (page !== "all") {
+            page = Math.floor(page < 1 ? 1 : page);
+            options.limit = Math.floor(size < 1 || !size ? 5 : size);
+            options.skip = (page - 1) * options.limit;
+            docsCount = await this.model.countDocuments(filter);
+            pages = Math.ceil(docsCount / options.limit);
+        }
+        const result = await this.find({ filter, select, options });
+        return { docsCount, limit: options.limit, pages, result, currentPage: page !== "all" ? page : undefined };
+    }
     async findOneAndDelete({ filter }) {
         return await this.model.findOneAndDelete(filter);
     }

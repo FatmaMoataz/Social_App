@@ -7,6 +7,9 @@ import { validation } from "../../middleware/validation.middleware";
 
 const router = Router()
 
+router.get('/', authentication(),
+postService.postList )
+
 router.post('/', authentication()
 ,cloudFileUpload({validation: fileValidation.img}).array("attachments",2),
 validation(validators.createPost),
