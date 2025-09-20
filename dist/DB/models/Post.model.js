@@ -39,7 +39,7 @@ const postSchema = new mongoose_1.Schema({
     timestamps: true,
     strictQuery: true
 });
-postSchema.pre(["find", "findOne"], function (next) {
+postSchema.pre(["find", "findOne", "countDocuments"], function (next) {
     const query = this.getQuery();
     if (query.paranoid === false) {
         this.setQuery({ ...query });
