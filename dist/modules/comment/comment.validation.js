@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createComment = void 0;
+exports.replyOnComment = exports.createComment = void 0;
 const zod_1 = require("zod");
 const validation_middleware_1 = require("../../middleware/validation.middleware");
 const cloud_multer_1 = require("../utils/multer/cloud.multer");
@@ -26,4 +26,10 @@ exports.createComment = {
             });
         }
     })
+};
+exports.replyOnComment = {
+    params: exports.createComment.params.extend({
+        commentId: validation_middleware_1.generalFields.id
+    }),
+    body: exports.createComment.body
 };

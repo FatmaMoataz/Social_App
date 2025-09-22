@@ -13,4 +13,10 @@ validation(validators.createComment),
 commentService.createComment
 )
 
+router.post("/:commentId/reply", authentication(), 
+cloudFileUpload({validation:fileValidation.img}).array("attachments",2),
+validation(validators.replyOnComment),
+commentService.replyOnComment
+)
+
 export default router

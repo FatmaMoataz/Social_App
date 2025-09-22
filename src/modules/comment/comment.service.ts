@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { successResponse } from "../utils/response/success.response";
 import { CommentRepository, PostRepository, UserRepository } from "../../DB/repository";
-import { AllowCommentsEnum, CommentModel, PostModel, UserModel } from "../../DB/models";
+import { AllowCommentsEnum, CommentModel, HPostDocument, PostModel, UserModel } from "../../DB/models";
 import { Types } from "mongoose";
 import { postAvailability } from "../post";
 import { BadRequest, Notfound } from "../utils/response/error.response";
@@ -44,6 +44,52 @@ attachments = await uploadFiles({files:req.files as Express.Multer.File[], path:
             ]
         }) || []
         if(!comment) {
+if(attachments.length) {
+await deleteFiles({urls:attachments})
+}
+throw new BadRequest("Failed to create this comment")
+        }
+return successResponse({res, statusCode:201})
+    }
+
+    replyOnComment = async(req: Request, res:Response):Promise<Response> => {
+
+    const {postId, commentId} = req.params as unknown as {postId:Types.ObjectId, commentId:Types.ObjectId}
+    const comment = await this.commentModel.findOne({
+        filter:{
+            _id:commentId,
+            postId,
+        },
+        options:{
+            populate:[{path:"postId", match:{
+                allowComments: AllowCommentsEnum.allow,
+                $or: postAvailability(req)
+            }}]
+        }
+    })
+    if(!comment?.postId) {
+        throw new Notfound("Failed to find matching result")
+    }
+        if(req.body.tags?.length && (await this.userModel.find({filter:{_id:{$in:req.body.tags}, paranoid:false}})).length !== req.body.tags.length) {
+throw new Notfound("Some of the mentioned users doesn't exist")
+        }
+        let attachments:string[]= []
+        if(req.files?.length) {
+            const post = comment.postId as Partial<HPostDocument>
+attachments = await uploadFiles({files:req.files as Express.Multer.File[], path:`users/${post.createdBy}/post/${post.assetsFolderId}`})
+        }
+        const [reply] = await this.commentModel.create({
+            data:[
+                {
+                    ...req.body,
+                    attachments,
+                    postId,
+                    commentId,
+                    createdBy:req.user?._id
+                }
+            ]
+        }) || []
+        if(!reply) {
 if(attachments.length) {
 await deleteFiles({urls:attachments})
 }

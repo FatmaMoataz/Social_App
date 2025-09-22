@@ -44,4 +44,5 @@ const validators = __importStar(require("./comment.validation"));
 const validation_middleware_1 = require("../../middleware/validation.middleware");
 const router = (0, express_1.Router)({ mergeParams: true });
 router.post("/", (0, authentication_middleware_1.authentication)(), (0, cloud_multer_1.cloudFileUpload)({ validation: cloud_multer_1.fileValidation.img }).array("attachments", 2), (0, validation_middleware_1.validation)(validators.createComment), comment_service_1.default.createComment);
+router.post("/:commentId/reply", (0, authentication_middleware_1.authentication)(), (0, cloud_multer_1.cloudFileUpload)({ validation: cloud_multer_1.fileValidation.img }).array("attachments", 2), (0, validation_middleware_1.validation)(validators.replyOnComment), comment_service_1.default.replyOnComment);
 exports.default = router;

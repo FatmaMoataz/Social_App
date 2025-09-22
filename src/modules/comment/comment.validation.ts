@@ -25,3 +25,10 @@ ctx.addIssue({
 }
     })
 }
+
+export const replyOnComment = {
+    params:createComment.params.extend({
+        commentId:generalFields.id
+    }),
+    body:createComment.body
+}

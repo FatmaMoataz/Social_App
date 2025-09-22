@@ -48,5 +48,49 @@ class CommentService {
         }
         return (0, success_response_1.successResponse)({ res, statusCode: 201 });
     };
+    replyOnComment = async (req, res) => {
+        const { postId, commentId } = req.params;
+        const comment = await this.commentModel.findOne({
+            filter: {
+                _id: commentId,
+                postId,
+            },
+            options: {
+                populate: [{ path: "postId", match: {
+                            allowComments: models_1.AllowCommentsEnum.allow,
+                            $or: (0, post_1.postAvailability)(req)
+                        } }]
+            }
+        });
+        if (!comment?.postId) {
+            throw new error_response_1.Notfound("Failed to find matching result");
+        }
+        if (req.body.tags?.length && (await this.userModel.find({ filter: { _id: { $in: req.body.tags }, paranoid: false } })).length !== req.body.tags.length) {
+            throw new error_response_1.Notfound("Some of the mentioned users doesn't exist");
+        }
+        let attachments = [];
+        if (req.files?.length) {
+            const post = comment.postId;
+            attachments = await (0, s3_config_1.uploadFiles)({ files: req.files, path: `users/${post.createdBy}/post/${post.assetsFolderId}` });
+        }
+        const [reply] = await this.commentModel.create({
+            data: [
+                {
+                    ...req.body,
+                    attachments,
+                    postId,
+                    commentId,
+                    createdBy: req.user?._id
+                }
+            ]
+        }) || [];
+        if (!reply) {
+            if (attachments.length) {
+                await (0, s3_config_1.deleteFiles)({ urls: attachments });
+            }
+            throw new error_response_1.BadRequest("Failed to create this comment");
+        }
+        return (0, success_response_1.successResponse)({ res, statusCode: 201 });
+    };
 }
 exports.default = new CommentService();
