@@ -18,7 +18,9 @@ const commentSchema = new mongoose_1.Schema({
     restoredBy: { type: mongoose_1.Schema.Types.ObjectId, ref: "User" }
 }, {
     timestamps: true,
-    strictQuery: true
+    strictQuery: true,
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true }
 });
 commentSchema.pre(["find", "findOne", "countDocuments"], function (next) {
     const query = this.getQuery();
@@ -39,5 +41,11 @@ commentSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
         this.setQuery({ ...query, freezedAt: { $exists: false } });
     }
     next();
+});
+commentSchema.virtual("reply", {
+    localField: "_id",
+    foreignField: "commentId",
+    ref: "Comment",
+    justOne: true
 });
 exports.CommentModel = mongoose_1.models.Comment || (0, mongoose_1.model)("Comment", commentSchema);

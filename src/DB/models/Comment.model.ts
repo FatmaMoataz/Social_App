@@ -36,7 +36,9 @@ const commentSchema = new Schema<IComment>({
     restoredBy: {type:Schema.Types.ObjectId, ref:"User"}
 }, {
     timestamps:true,
-    strictQuery:true
+    strictQuery:true,
+    toObject:{virtuals:true},
+    toJSON:{virtuals:true}
 })
 
 commentSchema.pre(["find", "findOne", "countDocuments"], function(next) {
@@ -59,6 +61,13 @@ else {
   this.setQuery({...query, freezedAt:{$exists:false}})
 }
 next()
+})
+
+commentSchema.virtual("reply", {
+  localField:"_id",
+  foreignField:"commentId",
+  ref:"Comment",
+justOne:true
 })
 
 export const CommentModel = models.Comment || model<IComment>("Comment", commentSchema)

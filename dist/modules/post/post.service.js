@@ -9,6 +9,7 @@ const error_response_1 = require("../utils/response/error.response");
 const s3_config_1 = require("../utils/multer/s3.config");
 const uuid_1 = require("uuid");
 const mongoose_1 = require("mongoose");
+const models_1 = require("../../DB/models");
 const postAvailability = (req) => {
     return [
         { availability: Post_model_1.AvailabilityEnum.public },
@@ -21,6 +22,7 @@ exports.postAvailability = postAvailability;
 class PostService {
     userModel = new repository_1.UserRepository(User_model_1.UserModel);
     postModel = new repository_1.PostRepository(Post_model_1.PostModel);
+    commentModel = new repository_1.CommentRepository(models_1.CommentModel);
     constructor() { }
     createPost = async (req, res) => {
         if (req.body.tags?.length && (await this.userModel.find({ filter: { _id: { $in: req.body.tags }, paranoid: false } })).length !== req.body.tags.length) {
@@ -134,9 +136,28 @@ class PostService {
             filter: {
                 $or: (0, exports.postAvailability)(req)
             },
+            options: {
+                populate: [{ path: "comments",
+                        match: { commentId: { $exists: false },
+                            freezedAt: { $exists: false }
+                        },
+                        populate: [{ path: "reply" }]
+                    }],
+            },
             page,
             size
         });
+        let result = [];
+        for (const post of posts.result) {
+            const comments = await this.commentModel.find({
+                filter: {
+                    postId: post._id,
+                    commentId: { $exists: false }
+                }
+            });
+            result.push({ post, comments });
+        }
+        posts.result = result;
         return (0, success_response_1.successResponse)({ res, data: { posts } });
     };
 }

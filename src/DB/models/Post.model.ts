@@ -53,7 +53,9 @@ const postSchema = new Schema<IPost>({
     restoredBy: {type:Schema.Types.ObjectId, ref:"User"}
 }, {
     timestamps:true,
-    strictQuery:true
+    strictQuery:true,
+    toObject:{virtuals:true},
+    toJSON:{virtuals:true}
 })
 
 postSchema.pre(["find", "findOne", "countDocuments"], function(next) {
@@ -76,6 +78,15 @@ else {
   this.setQuery({...query, freezedAt:{$exists:false}})
 }
 next()
+})
+
+// postSchema._id = commentSchema.postId
+
+postSchema.virtual("comments", {
+  localField:"_id",
+  foreignField:"postId",
+  ref:"Comment",
+  justOne:true
 })
 
 export const PostModel = models.Post || model<IPost>("Post", postSchema)

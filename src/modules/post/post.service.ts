@@ -1,13 +1,14 @@
 import type{ Request, Response } from "express";
 import { successResponse } from "../utils/response/success.response";
 import { AvailabilityEnum, HPostDocument, LikeActionEnum, PostModel } from "../../DB/models/Post.model";
-import { PostRepository, UserRepository } from "../../DB/repository";
+import { CommentRepository, PostRepository, UserRepository } from "../../DB/repository";
 import { UserModel } from "../../DB/models/User.model";
 import { BadRequest, Notfound } from "../utils/response/error.response";
 import { deleteFiles, uploadFiles } from "../utils/multer/s3.config";
 import {v4 as uuid} from 'uuid'
 import { LikePostQueryInputsDto } from "./post.dto";
 import { Types, UpdateQuery } from "mongoose";
+import { CommentModel } from "../../DB/models";
 
 export const postAvailability = (req:Request) => {
     return [
@@ -21,7 +22,9 @@ export const postAvailability = (req:Request) => {
 class PostService {
     private userModel = new UserRepository(UserModel)
     private postModel = new PostRepository(PostModel)
+    private commentModel = new CommentRepository(CommentModel)
     constructor() {}
+
     createPost = async(req: Request, res:Response):Promise<Response> => {
         if(req.body.tags?.length && (await this.userModel.find({filter:{_id:{$in:req.body.tags}, paranoid:false}})).length !== req.body.tags.length) {
 throw new Notfound("Some of the mentioned users doesn't exist")
@@ -141,9 +144,29 @@ return successResponse({res})
 filter:{
     $or: postAvailability(req)
 },
+options:{
+    populate:[{path:"comments", 
+    match:{commentId:{$exists:false}, 
+    freezedAt:{$exists:false}
+},
+populate:[{path:"reply"}]
+}],
+
+},
 page,
 size
         })
+        let result = []
+        for (const post of posts.result) {
+            const comments = await this.commentModel.find({
+                filter:{
+                    postId: post._id,
+                    commentId:{$exists:false}
+                }
+            })
+            result.push({post, comments})
+        }
+        posts.result = result
 return successResponse({res, data:{posts}})
     }
 }
