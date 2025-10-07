@@ -10,6 +10,8 @@ import { endpoint } from "./user.authorization";
 const router = Router()
 
 router.get("/", authentication(),userService.profile)
+router.get("/dashboard", authorization(endpoint.dashboard),userService.dashboard)
+
 router.delete("{/:userId}/freeze-account", authentication(),validation(validators.freezeAccount) ,userService.freezeAccount)
 
 router.delete("/:userId", authentication(endpoint.hardDelete),validation(validators.freezeAccount) ,userService.hardDeleteAccount)

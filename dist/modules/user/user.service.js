@@ -9,15 +9,25 @@ const s3_config_1 = require("../utils/multer/s3.config");
 const error_response_1 = require("../utils/response/error.response");
 const s3_multer_1 = require("../utils/multer/s3.multer");
 const success_response_1 = require("../utils/response/success.response");
+const repository_1 = require("../../DB/repository");
+const models_1 = require("../../DB/models");
 class userService {
     userModel = new user_repository_1.UserRepository(User_model_1.UserModel);
     tokenModel = new token_repository_1.TokenRepository(Token_model_1.TokenModel);
+    postModel = new repository_1.PostRepository(models_1.PostModel);
     constructor() { }
     profile = async (req, res) => {
         if (!req.user) {
             throw new error_response_1.Unauthorized("missing user details");
         }
         return (0, success_response_1.successResponse)({ res, data: { user: req.user } });
+    };
+    dashboard = async (req, res) => {
+        const results = await Promise.allSettled([
+            this.userModel.find({ filter: {} }),
+            this.postModel.find({ filter: {} })
+        ]);
+        return (0, success_response_1.successResponse)({ res, data: { results } });
     };
     logout = async (req, res) => {
         const { flag } = req.body;

@@ -13,10 +13,14 @@ import { s3Event } from "../utils/multer/s3.multer"
 import { successResponse } from "../utils/response/success.response"
 import { IUserResponse, IProfileImgResponse } from "./user.entities"
 import { ILoginResponse } from "../auth/auth.entities"
+import { PostRepository } from "../../DB/repository"
+import { PostModel } from "../../DB/models"
 
 class userService {
     private userModel = new UserRepository(UserModel)
     private tokenModel = new TokenRepository(TokenModel)
+    private postModel = new PostRepository(PostModel)
+
     constructor(){}
 
     profile = async(req: Request, res: Response):Promise<Response> => {
@@ -24,6 +28,15 @@ class userService {
 throw new Unauthorized("missing user details")
         }
 return successResponse<IUserResponse>({res, data:{user: req.user}})
+    }
+
+    dashboard = async(req: Request, res: Response):Promise<Response> => {
+        const results = await Promise.allSettled([
+this.userModel.find({filter:{}}),
+this.postModel.find({filter:{}})
+        ])
+
+return successResponse({res, data:{results}})
     }
 
     logout = async(req: Request, res: Response):Promise<Response> => {
