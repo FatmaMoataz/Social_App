@@ -29,6 +29,27 @@ class userService {
         ]);
         return (0, success_response_1.successResponse)({ res, data: { results } });
     };
+    changeRole = async (req, res) => {
+        const { userId } = req.params;
+        const { role } = req.body;
+        const denyRoles = [role, User_model_1.RoleEnum.superAdmin];
+        if (req.user?.role === User_model_1.RoleEnum.admin) {
+            denyRoles.push(User_model_1.RoleEnum.admin);
+        }
+        const user = await this.userModel.findOneAndUpdate({
+            filter: {
+                _id: userId,
+                role: { $nin: denyRoles }
+            },
+            update: {
+                role,
+            }
+        });
+        if (!user) {
+            throw new error_response_1.Notfound("Failed to find matching result");
+        }
+        return (0, success_response_1.successResponse)({ res });
+    };
     logout = async (req, res) => {
         const { flag } = req.body;
         let statusCode = 200;

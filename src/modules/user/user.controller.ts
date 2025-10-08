@@ -11,6 +11,7 @@ const router = Router()
 
 router.get("/", authentication(),userService.profile)
 router.get("/dashboard", authorization(endpoint.dashboard),userService.dashboard)
+router.patch("/:userId/change-role", authorization(endpoint.dashboard), validation(validators.changeRole),userService.changeRole)
 
 router.delete("{/:userId}/freeze-account", authentication(),validation(validators.freezeAccount) ,userService.freezeAccount)
 

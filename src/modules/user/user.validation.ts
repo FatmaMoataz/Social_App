@@ -1,10 +1,21 @@
 import {z} from 'zod'
 import { LogoutEnum } from '../utils/security/token.security'
 import { Types } from 'mongoose'
+import { generalFields } from '../../middleware/validation.middleware'
+import { RoleEnum } from '../../DB/models'
 
 export const logout = {
     body:z.strictObject({
         flag:z.enum(LogoutEnum).default(LogoutEnum.only)
+    })
+}
+
+export const changeRole = {
+    params:z.strictObject({
+        userId:generalFields.id
+    }),
+    body:z.strictObject({
+        role:z.enum(RoleEnum)
     })
 }
 

@@ -39,6 +39,29 @@ this.postModel.find({filter:{}})
 return successResponse({res, data:{results}})
     }
 
+    changeRole = async(req: Request, res: Response):Promise<Response> => {
+        const {userId} = req.params as unknown as {userId: Types.ObjectId}
+        const {role}:{role:RoleEnum} = req.body
+        const denyRoles: RoleEnum[] = [role, RoleEnum.superAdmin]
+        if(req.user?.role === RoleEnum.admin) {
+denyRoles.push(RoleEnum.admin)
+        }
+        const user = await this.userModel.findOneAndUpdate({
+filter: {
+    _id: userId as Types.ObjectId,
+    role:{$nin: denyRoles}
+},
+update: {
+    role,
+}
+        })
+        if(!user) {
+            throw new Notfound("Failed to find matching result")
+        }
+
+return successResponse({res})
+    }
+
     logout = async(req: Request, res: Response):Promise<Response> => {
         const {flag}:ILogoutDto = req.body
         let statusCode:number = 200
