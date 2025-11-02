@@ -11,6 +11,9 @@ const router = Router()
 
 router.get("/", authentication(),userService.profile)
 router.get("/dashboard", authorization(endpoint.dashboard),userService.dashboard)
+router.post("/:userId/send-friend-request", authentication(),validation(validators.sendFriendRequest),userService.sendFriendRequest)
+router.patch("/accept-friend-request/:requestId", authentication(),validation(validators.acceptFriendRequest),userService.acceptFriendRequest)
+
 router.patch("/:userId/change-role", authorization(endpoint.dashboard), validation(validators.changeRole),userService.changeRole)
 
 router.delete("{/:userId}/freeze-account", authentication(),validation(validators.freezeAccount) ,userService.freezeAccount)

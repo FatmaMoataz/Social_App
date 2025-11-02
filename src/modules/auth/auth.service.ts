@@ -59,7 +59,7 @@ return successResponse<ILoginResponse>({res, data:{credentials}})
 
 signupWithGmail = async(req: Request, res: Response): Promise<Response> => {
   const {idToken}: IGmail = req.body
-  const {email, family_name, given_name, name, picture} = await this.verifyGmailAccount(idToken)
+  const {email, family_name, given_name, picture} = await this.verifyGmailAccount(idToken)
   const user = await this.userModel.findOne({
     filter: {
       email

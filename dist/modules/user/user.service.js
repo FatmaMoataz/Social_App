@@ -15,6 +15,7 @@ class userService {
     userModel = new user_repository_1.UserRepository(User_model_1.UserModel);
     tokenModel = new token_repository_1.TokenRepository(Token_model_1.TokenModel);
     postModel = new repository_1.PostRepository(models_1.PostModel);
+    friendRequestModel = new repository_1.FriendRequestRepository(models_1.FriendRequestModel);
     constructor() { }
     profile = async (req, res) => {
         if (!req.user) {
@@ -25,7 +26,7 @@ class userService {
     dashboard = async (req, res) => {
         const results = await Promise.allSettled([
             this.userModel.find({ filter: {} }),
-            this.postModel.find({ filter: {} })
+            this.postModel.find({ filter: {} }),
         ]);
         return (0, success_response_1.successResponse)({ res, data: { results } });
     };
@@ -39,14 +40,44 @@ class userService {
         const user = await this.userModel.findOneAndUpdate({
             filter: {
                 _id: userId,
-                role: { $nin: denyRoles }
+                role: { $nin: denyRoles },
             },
             update: {
                 role,
-            }
+            },
         });
         if (!user) {
             throw new error_response_1.Notfound("Failed to find matching result");
+        }
+        return (0, success_response_1.successResponse)({ res });
+    };
+    sendFriendRequest = async (req, res) => {
+        const { userId } = req.params;
+        const checkFriendRequestExist = await this.friendRequestModel.findOne({
+            filter: {
+                createdBy: { $in: [req.user?._id, userId] },
+                sendTo: { $in: [req.user?._id, userId] },
+            },
+        });
+        if (checkFriendRequestExist) {
+            throw new error_response_1.Conflict("Friend request already exist");
+        }
+        const user = await this.userModel.findOne({
+            filter: { _id: userId },
+        });
+        if (!user) {
+            throw new error_response_1.Notfound("Invalid recipient");
+        }
+        const [friendRequest] = (await this.friendRequestModel.create({
+            data: [
+                {
+                    createdBy: req.user?._id,
+                    sendTo: userId,
+                },
+            ],
+        })) || [];
+        if (!friendRequest) {
+            throw new error_response_1.BadRequest("Something went wrong");
         }
         return (0, success_response_1.successResponse)({ res });
     };
@@ -60,11 +91,14 @@ class userService {
                 break;
             default:
                 await this.tokenModel.create({
-                    data: [{
+                    data: [
+                        {
                             jti: req.decoded?.jti,
-                            expiresIn: req.decoded?.iat + Number(process.env.REFRESH_TOKEN_EXPIRES_IN),
-                            userId: req.decoded?._id
-                        }]
+                            expiresIn: req.decoded?.iat +
+                                Number(process.env.REFRESH_TOKEN_EXPIRES_IN),
+                            userId: req.decoded?._id,
+                        },
+                    ],
                 });
                 await (0, token_security_1.createRevokeToken)(req.decoded);
                 statusCode = 201;
@@ -72,26 +106,32 @@ class userService {
         }
         await this.userModel.updateOne({
             filter: { _id: req.decoded?._id },
-            update
+            update,
         });
         return res.status(statusCode).json({ message: "Done" });
     };
     refreshToken = async (req, res) => {
         const credentials = await (0, token_security_1.loginCredentials)(req.user);
         await (0, token_security_1.createRevokeToken)(req.decoded);
-        return (0, success_response_1.successResponse)({ res, statusCode: 201, data: { credentials } });
+        return (0, success_response_1.successResponse)({
+            res,
+            statusCode: 201,
+            data: { credentials },
+        });
     };
     profileImg = async (req, res) => {
-        const { ContentType, originalname } = req.body;
+        const { ContentType, originalname, } = req.body;
         const { url, key } = await (0, s3_config_1.createPreSignUploadLink)({
-            ContentType, originalname, path: `users/${req.decoded?._id}`
+            ContentType,
+            originalname,
+            path: `users/${req.decoded?._id}`,
         });
         const user = await this.userModel.findByIdAndUpdate({
             id: req.user?._id,
             update: {
                 profileImg: key,
-                tempProfileImg: req.user?.profileImg
-            }
+                tempProfileImg: req.user?.profileImg,
+            },
         });
         if (!user) {
             throw new error_response_1.BadRequest("Failed to update user profile image");
@@ -100,7 +140,7 @@ class userService {
             userId: req.user?._id,
             oldKey: req.user?.profileImg,
             key,
-            expiresIn: 30000
+            expiresIn: 30000,
         });
         return (0, success_response_1.successResponse)({ res, data: { url } });
     };
@@ -108,13 +148,13 @@ class userService {
         const urls = await (0, s3_config_1.uploadFiles)({
             files: req.files,
             path: `users/${req.decoded?._id}/cover`,
-            isLarge: true
+            isLarge: true,
         });
         const user = this.userModel.findByIdAndUpdate({
             id: req.user?._id,
             update: {
-                coverImgs: urls
-            }
+                coverImgs: urls,
+            },
         });
         if (!user) {
             throw new error_response_1.BadRequest("Failed to update profile cover images");
@@ -140,9 +180,9 @@ class userService {
                 changeCredentialsTime: new Date(),
                 $unset: {
                     restoredAt: 1,
-                    restoredBy: 1
-                }
-            }
+                    restoredBy: 1,
+                },
+            },
         });
         if (!user.matchedCount) {
             throw new error_response_1.Notfound("User not found or Failed to freeze this resource");
@@ -161,9 +201,9 @@ class userService {
                 restoredBy: req.user?._id,
                 $unset: {
                     freezedAt: 1,
-                    freezedBy: 1
-                }
-            }
+                    freezedBy: 1,
+                },
+            },
         });
         if (!user.matchedCount) {
             throw new error_response_1.Notfound("User not found or Failed to restore this resource");
@@ -175,8 +215,8 @@ class userService {
         const user = await this.userModel.deleteOne({
             filter: {
                 _id: userId,
-                freezedAt: { $exists: true }
-            }
+                freezedAt: { $exists: true },
+            },
         });
         if (!user.deletedCount) {
             throw new error_response_1.Notfound("user not found or hard delete this resource");

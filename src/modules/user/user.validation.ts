@@ -10,6 +10,18 @@ export const logout = {
     })
 }
 
+export const sendFriendRequest = {
+    params: z.strictObject({
+        userId: generalFields.id
+    })
+}
+
+export const acceptFriendRequest = {
+    params: z.strictObject({
+        requestId: generalFields.id
+    })
+}
+
 export const changeRole = {
     params:z.strictObject({
         userId:generalFields.id
