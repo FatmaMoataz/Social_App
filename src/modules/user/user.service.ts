@@ -50,10 +50,24 @@ class userService {
   constructor() {}
 
   profile = async (req: Request, res: Response): Promise<Response> => {
+    const profile = await this.userModel.findById({
+id: req.user?._id as Types.ObjectId,
+options: {
+populate:[
+  {
+    path:"friends",
+    select:"firstName lastName email gender profilePicture"
+  }
+]
+}
+    })
+    if(!profile) {
+      throw new Notfound("Failed to find user profile")
+    }
     if (!req.user) {
       throw new Unauthorized("missing user details");
     }
-    return successResponse<IUserResponse>({ res, data: { user: req.user } });
+    return successResponse<IUserResponse>({ res, data: { user: profile } });
   };
 
   dashboard = async (req: Request, res: Response): Promise<Response> => {

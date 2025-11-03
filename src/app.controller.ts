@@ -54,6 +54,7 @@ app.get("/uploads/*path", async(req:Request, res:Response):Promise<void> => {
     if(!s3Response?.Body) {
 throw new BadRequest("Failed to fetch this asset")
     }
+    res.set("Cross-Origin-Resource-Policy" , "cross-origin")
     res.setHeader("Content-type", `${s3Response.ContentType || "application/octet-stream"}`)
     if(download === "true") {
     res.setHeader("Content-Disposition", `attachments: filename="${downloadName || Key.split("/").pop()}"`)

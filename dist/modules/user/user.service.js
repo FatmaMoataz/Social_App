@@ -18,10 +18,21 @@ class userService {
     friendRequestModel = new repository_1.FriendRequestRepository(models_1.FriendRequestModel);
     constructor() { }
     profile = async (req, res) => {
-        if (!req.user) {
-            throw new error_response_1.Unauthorized("missing user details");
+        const profile = await this.userModel.findById({
+            id: req.user?._id,
+            options: {
+                populate: [
+                    {
+                        path: "friends",
+                        select: "firstName lastName email gender profilePicture"
+                    }
+                ]
+            }
+        });
+        if (!profile) {
+            throw new error_response_1.Notfound("Failed to find user profile");
         }
-        return (0, success_response_1.successResponse)({ res, data: { user: req.user } });
+        return (0, success_response_1.successResponse)({ res, data: { user: profile } });
     };
     dashboard = async (req, res) => {
         const results = await Promise.allSettled([
@@ -79,6 +90,30 @@ class userService {
         if (!friendRequest) {
             throw new error_response_1.BadRequest("Something went wrong");
         }
+        return (0, success_response_1.successResponse)({ res, statusCode: 201 });
+    };
+    acceptFriendRequest = async (req, res) => {
+        const { requestId } = req.params;
+        const friendRequest = await this.friendRequestModel.findOneAndUpdate({
+            filter: {
+                _id: requestId,
+                sendTo: req.user?._id,
+            },
+            update: {
+                acceptedAt: new Date()
+            }
+        });
+        if (!friendRequest) {
+            throw new error_response_1.Notfound("Failed to find matching result");
+        }
+        await Promise.all([
+            await this.userModel.updateOne({
+                filter: { _id: friendRequest.sendTo },
+                update: {
+                    $addToSet: { friends: friendRequest.createdBy }
+                }
+            })
+        ]);
         return (0, success_response_1.successResponse)({ res });
     };
     logout = async (req, res) => {

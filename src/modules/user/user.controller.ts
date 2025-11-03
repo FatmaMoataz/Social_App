@@ -13,17 +13,16 @@ router.get("/", authentication(),userService.profile)
 router.get("/dashboard", authorization(endpoint.dashboard),userService.dashboard)
 router.post("/:userId/send-friend-request", authentication(),validation(validators.sendFriendRequest),userService.sendFriendRequest)
 router.patch("/accept-friend-request/:requestId", authentication(),validation(validators.acceptFriendRequest),userService.acceptFriendRequest)
-
 router.patch("/:userId/change-role", authorization(endpoint.dashboard), validation(validators.changeRole),userService.changeRole)
+router.patch("/profile-img", authentication(), userService.profileImg)
+router.patch("/profile-cover-img", authentication(), cloudFileUpload({validation: fileValidation.img ,storageApproach:StorageEnum.disk}).array("imgs", 2),userService.profileCoverImg)
 
 router.delete("{/:userId}/freeze-account", authentication(),validation(validators.freezeAccount) ,userService.freezeAccount)
-
 router.delete("/:userId", authentication(endpoint.hardDelete),validation(validators.freezeAccount) ,userService.hardDeleteAccount)
 
 router.patch("/:userId/restore-account", authorization(endpoint.restoreAccount),validation(validators.restoreAccount) ,userService.freezeAccount)
 
-router.patch("/profile-img", authentication(), userService.profileImg)
-router.patch("/profile-cover-img", authentication(), cloudFileUpload({validation: fileValidation.img ,storageApproach:StorageEnum.disk}).array("imgs", 2),userService.profileCoverImg)
+
 router.post("/refresh-token", authentication(TokenEnum.refresh), userService.refreshToken)
 router.post("/logout", authentication(), validation(validators.logout),userService.logout)
 export default router

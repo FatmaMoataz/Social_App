@@ -17,6 +17,36 @@ async findOne({filter, select, options} : {
     return await doc.exec()
 }
 
+
+  async findById({
+    id,
+    select,
+    options,
+  }: {
+    id: Types.ObjectId;
+    select?: ProjectionType<TDocument> | null;
+    options?: QueryOptions<TDocument> | null;
+  }): Promise<HydratedDocument<TDocument> | Lean<TDocument> | null> {
+    const q = this.model.findById(id).select(select || "");
+
+    if (options?.populate) {
+      q.populate(options.populate as PopulateOptions[] | PopulateOptions);
+    }
+    if (options?.lean) {
+      // allow passing boolean or LeanOptions
+      typeof options.lean === "object" ? q.lean(options.lean) : q.lean();
+    }
+    if (options?.session) {
+      q.session(options.session);
+    }
+    if (options?.projection) {
+      // if someone passed projection inside options, respect it (mongoose supports both)
+      q.select(options.projection as any);
+    }
+
+    return await q.exec();
+  }
+
     async create({data,options}: {data: Partial<TDocument>[], options?:CreateOptions | undefined}):Promise<HydratedDocument<TDocument>[] | undefined >{
        return await this.model.create(data, options)
     }

@@ -13,6 +13,24 @@ class DatabaseRepository {
         }
         return await doc.exec();
     }
+    async findById({ id, select, options, }) {
+        const q = this.model.findById(id).select(select || "");
+        if (options?.populate) {
+            q.populate(options.populate);
+        }
+        if (options?.lean) {
+            // allow passing boolean or LeanOptions
+            typeof options.lean === "object" ? q.lean(options.lean) : q.lean();
+        }
+        if (options?.session) {
+            q.session(options.session);
+        }
+        if (options?.projection) {
+            // if someone passed projection inside options, respect it (mongoose supports both)
+            q.select(options.projection);
+        }
+        return await q.exec();
+    }
     async create({ data, options }) {
         return await this.model.create(data, options);
     }
