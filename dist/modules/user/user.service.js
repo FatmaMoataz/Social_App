@@ -32,6 +32,9 @@ class userService {
         if (!profile) {
             throw new error_response_1.Notfound("Failed to find user profile");
         }
+        if (!req.user) {
+            throw new error_response_1.Unauthorized("missing user details");
+        }
         return (0, success_response_1.successResponse)({ res, data: { user: profile } });
     };
     dashboard = async (req, res) => {

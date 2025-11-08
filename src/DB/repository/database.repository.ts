@@ -7,8 +7,8 @@ export abstract class DatabaseRepository<TDocument> {
 
 async findOne({filter, select, options} : {
     filter?: RootFilterQuery<TDocument>, 
-    select?: ProjectionType<TDocument> | null,
-    options?:QueryOptions<TDocument> | null
+    select?: ProjectionType<TDocument> | null | undefined,
+    options?:QueryOptions<TDocument> | null | undefined
 }): Promise<Lean<TDocument> | HydratedDocument<TDocument> | null> {
     const doc = this.model.findOne(filter).select(select || "")
     if(options?.lean) {
@@ -24,8 +24,8 @@ async findOne({filter, select, options} : {
     options,
   }: {
     id: Types.ObjectId;
-    select?: ProjectionType<TDocument> | null;
-    options?: QueryOptions<TDocument> | null;
+    select?: ProjectionType<TDocument> | null | undefined;
+    options?: QueryOptions<TDocument> | null | undefined;
   }): Promise<HydratedDocument<TDocument> | Lean<TDocument> | null> {
     const q = this.model.findById(id).select(select || "");
 
@@ -93,8 +93,8 @@ filter: RootFilterQuery<TDocument>
 
 async find({filter, select, options} : {
     filter?: RootFilterQuery<TDocument>, 
-    select?: ProjectionType<TDocument>,
-    options?:QueryOptions<TDocument> | null
+    select?: ProjectionType<TDocument> | undefined,
+    options?:QueryOptions<TDocument> | null | undefined
 }): Promise<Lean<TDocument>[] | HydratedDocument<TDocument>[] | []> {
     const doc = this.model.find(filter || {}).select(select || "")
     if(options?.populate) {

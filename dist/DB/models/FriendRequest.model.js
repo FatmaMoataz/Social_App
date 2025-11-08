@@ -30,4 +30,4 @@ friendRequestSchema.pre(["findOneAndUpdate", "updateOne"], function (next) {
     }
     next();
 });
-exports.FriendRequestModel = mongoose_1.models.FriendRequest || (0, mongoose_1.model)("Comment", friendRequestSchema);
+exports.FriendRequestModel = mongoose_1.models.FriendRequest || (0, mongoose_1.model)("FriendRequest", friendRequestSchema);

@@ -27,6 +27,7 @@ const limiter = rateLimit({
     message:{error:"Too many request please try again later"}
 })
 
+import {Server, Socket} from 'socket.io'
 
 const bootstrap = async():Promise<void> => {
 const app:Express = express()
@@ -35,6 +36,7 @@ app.use(cors(),express.json(),helmet())
 
 app.use(limiter)
 await connectDB()
+
 // app-routing
 app.get('/',(req:Request, res:Response) => {
     res.json({message:`Welcome to ${process.env.APPLICATION_NAME} backend landing page`})
@@ -73,9 +75,33 @@ return res.json({message:"Done", data:{url}})
 // invalid route
 app.use("{/*dummy}",(req:Request, res:Response) => {return res.status(404).json({message:'Invalid routing'})})
 
-app.listen(port, () => {
+const httpServer = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);  
 })
+
+const io = new Server(httpServer  , {
+    cors: {
+        origin:"*",
+    }
+})
+// http://localhost:3000/
+io.on("connection", (socket: Socket) => {
+console.log(socket);
+socket.on("disconnect" , () => {
+    console.log(`logout from ${socket.id}`);
+    
+})
+})
+
+// http://localhost:3000/admin
+io.of("/admin").on("connection", (socket: Socket) => {
+console.log(`Admin`, socket.id);
+socket.on("disconnect" , () => {
+    console.log(`logout from ${socket.id}`);
+    
+})
+})
+
 }
 
 export default bootstrap

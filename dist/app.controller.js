@@ -22,6 +22,7 @@ const limiter = (0, express_rate_limit_1.rateLimit)({
     limit: 2000,
     message: { error: "Too many request please try again later" }
 });
+const socket_io_1 = require("socket.io");
 const bootstrap = async () => {
     const app = (0, express_1.default)();
     const port = process.env.PORT || 5000;
@@ -45,6 +46,7 @@ const bootstrap = async () => {
         if (!s3Response?.Body) {
             throw new error_response_1.BadRequest("Failed to fetch this asset");
         }
+        res.set("Cross-Origin-Resource-Policy", "cross-origin");
         res.setHeader("Content-type", `${s3Response.ContentType || "application/octet-stream"}`);
         if (download === "true") {
             res.setHeader("Content-Disposition", `attachments: filename="${downloadName || Key.split("/").pop()}"`);
@@ -60,8 +62,12 @@ const bootstrap = async () => {
     });
     // invalid route
     app.use("{/*dummy}", (req, res) => { return res.status(404).json({ message: 'Invalid routing' }); });
-    app.listen(port, () => {
+    const httpServer = app.listen(port, () => {
         console.log(`Server is running on port ${port}`);
+    });
+    const io = new socket_io_1.Server(httpServer);
+    io.on("connection", (socket) => {
+        console.log(socket);
     });
 };
 exports.default = bootstrap;

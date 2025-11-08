@@ -41,4 +41,4 @@ else {
 next()
 })
 
-export const FriendRequestModel = models.FriendRequest || model<IFriendRequest>("Comment", friendRequestSchema)
+export const FriendRequestModel = models.FriendRequest || model<IFriendRequest>("FriendRequest", friendRequestSchema)
