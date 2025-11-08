@@ -87,6 +87,14 @@ const io = new Server(httpServer  , {
 // http://localhost:3000/
 io.on("connection", (socket: Socket) => {
 console.log(socket);
+socket.on("sayHi" , (data , callback) => {
+console.log(data);
+callback("Hello BE To FE")
+})
+socket.emit("productStock" , {productId:"d3h4tag" , quantity:5} , (res:string) => {
+console.log({res});
+
+})
 socket.on("disconnect" , () => {
     console.log(`logout from ${socket.id}`);
     
@@ -94,13 +102,13 @@ socket.on("disconnect" , () => {
 })
 
 // http://localhost:3000/admin
-io.of("/admin").on("connection", (socket: Socket) => {
-console.log(`Admin`, socket.id);
-socket.on("disconnect" , () => {
-    console.log(`logout from ${socket.id}`);
+// io.of("/admin").on("connection", (socket: Socket) => {
+// console.log(`Admin`, socket.id);
+// socket.on("disconnect" , () => {
+//     console.log(`logout from ${socket.id}`);
     
-})
-})
+// })
+// })
 
 }
 
