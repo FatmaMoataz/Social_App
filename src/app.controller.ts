@@ -36,7 +36,7 @@ const limiter = rateLimit({
 import { Server, Socket } from "socket.io";
 import { decodeToken, TokenEnum } from "./modules/utils/security/token.security";
 
-const connectedSockets: string[] = [];
+const connectedSockets = new Map<string , string>();
 const bootstrap = async (): Promise<void> => {
   const app: Express = express();
   const port: number | string = process.env.PORT || 5000;
@@ -133,6 +133,7 @@ try {
         authorization: socket.handshake?.auth.authorization || '', 
         tokenType:TokenEnum.access
     })
+    connectedSockets.set(user._id.toString() , socket.id)
     //  new BadRequest("Failed in authentication middleware")
      next()
 } catch (error:any) {
@@ -142,7 +143,7 @@ try {
   // http://localhost:3000/
   io.on("connection", (socket: Socket) => {
     console.log(socket);
-    connectedSockets.push(socket.id);
+    // connectedSockets.push(socket.id);
     // socket.on("sayHi" , (data , callback) => {
     // console.log(data);
     // callback("Hello BE To FE")
@@ -155,6 +156,7 @@ try {
     //   }
     );
     socket.on("disconnect", () => {
+     connectedSockets.delete("68c986c023a55d")
       console.log(`logout from ${socket.id}`);
     });
   });
