@@ -35,8 +35,16 @@ const limiter = rateLimit({
 
 import { Server, Socket } from "socket.io";
 import { decodeToken, TokenEnum } from "./modules/utils/security/token.security";
+import { HUserDocument } from "./DB/models";
+import { JwtPayload } from "jsonwebtoken";
 
-const connectedSockets = new Map<string , string>();
+const connectedSockets = new Map<string , string[]>();
+interface IAuthSocket extends Socket {
+  credentials?: {
+    user: Partial<HUserDocument> & { _id?: string },
+    decoded: JwtPayload
+  }
+}
 const bootstrap = async (): Promise<void> => {
   const app: Express = express();
   const port: number | string = process.env.PORT || 5000;
@@ -127,37 +135,51 @@ const bootstrap = async (): Promise<void> => {
       origin: "*",
     },
   });
-  io.use(async(socket:Socket , next) => {
-try {
-    const {user , decoded} = await decodeToken({
-        authorization: socket.handshake?.auth.authorization || '', 
-        tokenType:TokenEnum.access
-    })
-    connectedSockets.set(user._id.toString() , socket.id)
-    //  new BadRequest("Failed in authentication middleware")
-     next()
-} catch (error:any) {
-    next(error)
-}
-  })
+
+  io.use(async (socket: IAuthSocket, next) => {
+    try {
+      const { user, decoded } = await decodeToken({
+        authorization: socket.handshake?.auth.authorization || "",
+        tokenType: TokenEnum.access,
+      });
+
+      // canonicalize/force a string id so TS no longer sees unknown
+      const userId = String((user as any)?._id ?? (user as any)?.id ?? "");
+      if (!userId) {
+        throw new BadRequest("Invalid user id in token");
+      }
+
+      const userTabs = connectedSockets.get(userId) || [];
+      userTabs.push(socket.id);
+      connectedSockets.set(userId, userTabs);
+
+      // store credentials with _id as string to avoid unknown type later
+      socket.credentials = { user: { ...(user as any), _id: userId }, decoded };
+      next();
+    } catch (error: any) {
+      next(error);
+    }
+  });
+
   // http://localhost:3000/
-  io.on("connection", (socket: Socket) => {
-    console.log(socket);
-    // connectedSockets.push(socket.id);
-    // socket.on("sayHi" , (data , callback) => {
-    // console.log(data);
-    // callback("Hello BE To FE")
-    // })
+  io.on("connection", (socket: IAuthSocket) => {
     socket.emit(
       "productStock",
       { productId: "d3h4tag", quantity: 5 },
-    //   (res: string) => {
-    //     console.log({ res });
-    //   }
     );
     socket.on("disconnect", () => {
-     connectedSockets.delete("68c986c023a55d")
-      console.log(`logout from ${socket.id}`);
+      const userId = socket.credentials?.user._id?.toString() as string
+      const remainingTabs = connectedSockets.get(userId)?.filter((tab:string) => {
+return tab !== socket.id
+      }) || []
+      if(remainingTabs?.length) {
+        connectedSockets.set(userId , remainingTabs)
+      }
+      else {
+        io.emit("offline_user" , userId)
+      }
+     connectedSockets.delete(userId)
+     io.emit("offline_user" , userId)
     });
   });
 
@@ -166,7 +188,6 @@ try {
   // console.log(`Admin`, socket.id);
   // socket.on("disconnect" , () => {
   //     console.log(`logout from ${socket.id}`);
-
   // })
   // })
 };
