@@ -3,12 +3,13 @@ import { Server as HttpServer } from "node:http";
 import { decodeToken, TokenEnum } from "../utils/security/token.security";
 import { BadRequest } from "../utils/response/error.response";
 import { IAuthSocket } from "./gateway.interface";
+import { ChatGateway } from "../chat";
 
-const connectedSockets = new Map<string , string[]>();
-
+export const connectedSockets = new Map<string , string[]>();
+let io: undefined | Server = undefined;
 export const initializeIo = (httpServer:HttpServer) => {
 
-     const io = new Server(httpServer, {
+   io = new Server(httpServer, {
     cors: {
       origin: "*",
     },
@@ -41,17 +42,22 @@ function disconnection (socket: IAuthSocket) {
     return socket.on("disconnect", () => {
       const userId = socket.credentials?.user._id?.toString() as string
      connectedSockets.delete(userId)
-     io.emit("offline_user" , userId)
+     getIo().emit("offline_user" , userId)
     });
 }
 
   // http://localhost:3000/
-  io.on("connection", (socket: IAuthSocket) => {
-
-    socket.on("sayHi" , (data , callback) => {
-callback("Hello BE To FE")
-    })
+const chatGateway:ChatGateway = new ChatGateway()
+ io.on("connection", (socket: IAuthSocket) => {
+  chatGateway.register(socket , getIo())
 disconnection(socket)
   });
 
+}
+
+export const getIo = ():Server => {
+  if(!io) {
+    throw new BadRequest("Fail to stablish server socket Io")
+  }
+  return io
 }
