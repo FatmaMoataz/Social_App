@@ -9,7 +9,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 
-import { authRouter, userRouter, postRouter, initializeIo } from "./modules";
+import { authRouter, userRouter, postRouter, initializeIo, chatRouter } from "./modules";
 
 import {
   BadRequest,
@@ -51,6 +51,7 @@ const bootstrap = async (): Promise<void> => {
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
   app.use("/post", postRouter);
+  app.use("/chat", chatRouter);
 
   app.use(globalErrorHandling);
 

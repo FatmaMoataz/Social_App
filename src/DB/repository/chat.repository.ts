@@ -1,9 +1,46 @@
-import { DatabaseRepository } from "./database.repository";
-import {IChat as TDocument} from '../models/Chat.model'
-import { Model } from "mongoose";
+import { DatabaseRepository, Lean } from "./database.repository";
+import { IChat as TDocument } from "../models/Chat.model";
+import {
+  HydratedDocument,
+  Model,
+  PopulateOptions,
+  ProjectionType,
+  QueryOptions,
+  RootFilterQuery,
+} from "mongoose";
 
 export class ChatRepository extends DatabaseRepository<TDocument> {
-constructor(protected override readonly model:Model<TDocument>){
-    super(model)
-}
+  constructor(protected override readonly model: Model<TDocument>) {
+    super(model);
+  }
+
+  async findOneChat({
+    filter,
+    select,
+    options,
+    page=1,
+    size=5
+  }: {
+    filter?: RootFilterQuery<TDocument>;
+    select?: ProjectionType<TDocument> | null | undefined;
+    options?: QueryOptions<TDocument> | null | undefined;
+    page?:number | undefined;
+    size?:number | undefined;
+  }): Promise<Lean<TDocument> | HydratedDocument<TDocument> | null> {
+
+     page = Math.floor(!page || page < 1 ? 1 : page)
+     size = Math.floor(size < 1 || !size ? 5 : size)
+
+    const doc = this.model.findOne(filter, {
+      messages: { $slice: [-(page * size) , size] },
+    });
+
+    if (options?.populate) {
+      doc.populate(options.populate as PopulateOptions[]);
+    }
+    if (options?.lean) {
+      doc.lean(options.lean);
+    }
+    return await doc.exec();
+  }
 }

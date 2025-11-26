@@ -38,13 +38,14 @@ import { s3Event } from "../utils/multer/s3.multer";
 import { successResponse } from "../utils/response/success.response";
 import { IUserResponse, IProfileImgResponse } from "./user.entities";
 import { ILoginResponse } from "../auth/auth.entities";
-import { FriendRequestRepository, PostRepository } from "../../DB/repository";
-import { FriendRequestModel, PostModel } from "../../DB/models";
+import { ChatRepository, FriendRequestRepository, PostRepository } from "../../DB/repository";
+import { ChatModel, FriendRequestModel, PostModel } from "../../DB/models";
 
 class userService {
   private userModel = new UserRepository(UserModel);
   private tokenModel = new TokenRepository(TokenModel);
   private postModel = new PostRepository(PostModel);
+  private chatModel = new ChatRepository(ChatModel);
   private friendRequestModel = new FriendRequestRepository(FriendRequestModel);
 
   constructor() {}
@@ -64,10 +65,16 @@ populate:[
     if(!profile) {
       throw new Notfound("Failed to find user profile")
     }
+    const groups = await this.chatModel.find({
+      filter:{
+        participants:{$in: req.user?._id as Types.ObjectId},
+        group:{$exists:true}
+      }
+    })
     if (!req.user) {
       throw new Unauthorized("missing user details");
     }
-    return successResponse<IUserResponse>({ res, data: { user: profile } });
+    return successResponse<IUserResponse>({ res, data: { user: profile , groups } });
   };
 
   dashboard = async (req: Request, res: Response): Promise<Response> => {

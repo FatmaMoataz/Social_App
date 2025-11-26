@@ -1,8 +1,10 @@
 import {z} from 'zod'
 import { IMainDto } from "../gateway";
-import { getChat } from './chat.validation';
+import { createChattingGroup, getChat } from './chat.validation';
 
 export type IGetChatParamsDto = z.infer<typeof getChat.params>
+export type IGetChatQueryParamsDto = z.infer<typeof getChat.query>
+export type ICreateChattingGroupParamsDto = z.infer<typeof createChattingGroup.body>
 export interface ISayHiDto extends IMainDto{
     message:string;
 }
