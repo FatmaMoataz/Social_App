@@ -15,4 +15,9 @@ this.chatService.sayHi({message , socket , callback , io})
 callback("Hello BE To FE")
     })
         }
+        sendMessage = (socket:IAuthSocket , io:Server) => {
+return socket.on("sendMessage" , (data:{content:string , sendTo:string}) => {
+this.chatService.sendMessage({...data , socket , io})
+    })
+        }
     }

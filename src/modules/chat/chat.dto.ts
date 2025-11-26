@@ -1,12 +1,12 @@
-import { Server } from "socket.io";
-import { IAuthSocket } from "../gateway";
+import {z} from 'zod'
+import { IMainDto } from "../gateway";
+import { getChat } from './chat.validation';
 
-export interface IMainDto {
-    socket:IAuthSocket;
-    callback?:any;
-    io?:Server;
-}
-
+export type IGetChatParamsDto = z.infer<typeof getChat.params>
 export interface ISayHiDto extends IMainDto{
     message:string;
+}
+export interface ISendMessageDto extends IMainDto{
+    content:string;
+    sendTo:string;
 }

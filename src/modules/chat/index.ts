@@ -1,2 +1,5 @@
 export * from './chat.gateway'
 export * from './chat.event'
+export * from './chat.service'
+export * from './chat.dto'
+export { default as chatRouter} from './chat.controller'
