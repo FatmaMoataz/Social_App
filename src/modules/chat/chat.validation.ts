@@ -13,6 +13,14 @@ export const getChat = {
     })
 }
 
+export const getChattingGroup = {
+    params: z.strictObject({
+        groupId: generalFields.id
+    }),
+
+        query: getChat.query
+}
+
 export const createChattingGroup = {
     body:z.strictObject({
         participants:z.array(generalFields.id).min(1),

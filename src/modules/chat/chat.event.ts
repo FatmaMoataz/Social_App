@@ -10,14 +10,14 @@ return socket.on("sayHi" , (message:string , callback) => {
 this.chatService.sayHi({message , socket , callback , io})
     })
         }
-        sayHi2 = (socket:IAuthSocket) => {
- return socket.on("sayHi2" , (data , callback) => {
-callback("Hello BE To FE")
-    })
-        }
         sendMessage = (socket:IAuthSocket , io:Server) => {
 return socket.on("sendMessage" , (data:{content:string , sendTo:string}) => {
 this.chatService.sendMessage({...data , socket , io})
+    })
+        }
+        joinRoom = (socket:IAuthSocket , io:Server) => {
+return socket.on("join_room" , (data:{roomId:string}) => {
+this.chatService.joinRoom({...data , socket , io})
     })
         }
     }

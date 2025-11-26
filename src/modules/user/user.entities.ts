@@ -7,5 +7,5 @@ export interface IProfileImgResponse {
 
 export interface IUserResponse  {
  user: Partial<HUserDocument>
- groups:Partial<HChatDocument>[]
+ groups?:Partial<HChatDocument>[]
 }
