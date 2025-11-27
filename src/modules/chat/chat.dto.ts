@@ -14,6 +14,11 @@ export interface ISendMessageDto extends IMainDto{
     sendTo:string;
 }
 
+export interface ISendGroupMessageDto extends IMainDto{
+    content:string;
+    groupId:string;
+}
+
 export interface IJoinRoomDto extends IMainDto{
     roomId:string;
 }

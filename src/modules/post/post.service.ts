@@ -9,6 +9,7 @@ import {v4 as uuid} from 'uuid'
 import { LikePostQueryInputsDto } from "./post.dto";
 import { Types, UpdateQuery } from "mongoose";
 import { CommentModel } from "../../DB/models";
+import { connectedSockets, getIo } from "../gateway";
 
 export const postAvailability = (req:Request) => {
     return [
@@ -131,6 +132,9 @@ update
         })
         if(!post) {
 throw new Notfound("Invalid postId or post doesn't exist")
+        }
+        if(action !== LikeActionEnum.unlike) {
+getIo().to(connectedSockets.get(post.createdBy.toString()) as string[]).emit("likePost" , {postId , userId:req.user?._id})
         }
 return successResponse({res})
     }

@@ -6,6 +6,7 @@ import {
   IGetChattingGroupParamsDto,
   IJoinRoomDto,
   ISayHiDto,
+  ISendGroupMessageDto,
   ISendMessageDto,
 } from "./chat.dto";
 import { successResponse } from "../utils/response/success.response";
@@ -206,6 +207,54 @@ export class ChatService {
       io?.to(connectedSockets.get(sendTo) || []).emit("newMessage", {
         content,
         from: socket.credentials?.user,
+      });
+    } catch (error) {
+      return socket.emit("custom_error", error);
+    }
+  };
+
+  sendGroupMessage = async ({ content, groupId, socket, io }: ISendGroupMessageDto) => {
+    try {
+      // validate sender id from socket and convert to ObjectId
+      const rawId = socket.credentials?.user._id;
+      const senderIdStr = String(rawId ?? "");
+      if (!Types.ObjectId.isValid(senderIdStr)) {
+        return socket.emit("custom_error", new BadRequest("Invalid sender id"));
+      }
+      const createdBy = new Types.ObjectId(senderIdStr);
+
+      // validate groupId and convert
+      if (!Types.ObjectId.isValid(String(groupId))) {
+        return socket.emit("custom_error", new BadRequest("Invalid group id"));
+      }
+      const groupObjectId = new Types.ObjectId(String(groupId));
+
+      // update chat (cast update to any to satisfy TS if model types are narrow)
+      const chat = await this.chatModel.findOneAndUpdate({
+        filter: {
+          _id: groupObjectId,
+          participants: { $in: [createdBy] },
+          group: { $exists: true },
+        },
+        update: {
+          $addToSet: { messages: { content, createdBy } as any },
+        } as any,
+      });
+
+      if (!chat) {
+        throw new BadRequest("Failed to find matching room");
+      }
+
+      // emit to sender's sockets and to room
+      io?.to(connectedSockets.get(createdBy.toString()) || []).emit(
+        "successMessage",
+        { content }
+      );
+
+      socket?.to(chat.roomId as string).emit("newMessage", {
+        content,
+        from: socket.credentials?.user,
+        groupId,
       });
     } catch (error) {
       return socket.emit("custom_error", error);
