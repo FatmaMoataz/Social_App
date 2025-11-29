@@ -27,19 +27,74 @@ import { pipeline } from "node:stream";
 
 const createS3WriteStreamPipe = promisify(pipeline);
 
+import { GraphQLEnumType, GraphQLID, GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLString} from 'graphql'
+import {createHandler} from 'graphql-http/lib/use/express'
+import { GenderEnum } from "./DB/models";
+import { UserGQLSchema } from "./modules/user/user.schema.gql";
+
 const limiter = rateLimit({
   windowMs: 60 * 6000,
   limit: 2000,
   message: { error: "Too many request please try again later" },
 });
 
+export const GraphQLUniformResponse = ({name , data}:{name:string , data:GraphQLOutputType}):GraphQLOutputType => {
+  return new GraphQLObjectType({
+    name: name,
+    fields: {
+      message: { type: GraphQLString },
+      statusCode: { type: GraphQLInt },
+      data: { type: data }
+    },
+  });
+}
+
+export const GraphQLGenderEnum = new GraphQLEnumType({
+  name: "GraphQLGenderEnum",
+  values: {
+    male: { value: GenderEnum.male },
+    female: { value: GenderEnum.female },
+  }
+});
+
+export const GraphQLOneUserResponse = new GraphQLObjectType({
+  name: "oneUserResponse",
+  fields: {
+    id: { type: GraphQLID },
+    name: { type: new GraphQLNonNull(GraphQLString), description: "userName" },
+    email: { type: GraphQLString },
+    gender: { type: GraphQLGenderEnum },
+    followers: { type: new GraphQLList(GraphQLID) }
+  }
+});
+
+export interface IUser {
+  id: number,
+  name: string,
+  email: string,
+  gender: GenderEnum,
+  password: string,
+  followers: number[]
+}
+
 const bootstrap = async (): Promise<void> => {
   const app: Express = express();
   const port: number | string = process.env.PORT || 5000;
   app.use(cors(), express.json(), helmet());
 
+  // Create instance of UserGQLSchema and get the schema
+  const userGQLSchema = new UserGQLSchema();
+  const schema = userGQLSchema.getSchema();
+
+  // Use the schema with GraphQL HTTP handler
+  app.all("/graphql", createHandler({ schema }));
+
   app.use(limiter);
   await connectDB();
+
+  app.get("/sayHi", (req: Request, res: Response) => {
+    return res.json({ message: "Done" });
+  });
 
   // app-routing
   app.get("/", (req: Request, res: Response) => {
@@ -47,6 +102,7 @@ const bootstrap = async (): Promise<void> => {
       message: `Welcome to ${process.env.APPLICATION_NAME} backend landing page`,
     });
   });
+
   // modules
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
@@ -119,8 +175,7 @@ const bootstrap = async (): Promise<void> => {
     console.log(`Server is running on port ${port}`);
   });
   
-  initializeIo(httpServer)
-
+  initializeIo(httpServer);
 };
 
 export default bootstrap;
