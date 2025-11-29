@@ -27,45 +27,13 @@ import { pipeline } from "node:stream";
 
 const createS3WriteStreamPipe = promisify(pipeline);
 
-import { GraphQLEnumType, GraphQLID, GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLString} from 'graphql'
 import {createHandler} from 'graphql-http/lib/use/express'
-import { GenderEnum } from "./DB/models";
 import { UserGQLSchema } from "./modules/user/user.schema.gql";
 
 const limiter = rateLimit({
   windowMs: 60 * 6000,
   limit: 2000,
   message: { error: "Too many request please try again later" },
-});
-
-export const GraphQLUniformResponse = ({name , data}:{name:string , data:GraphQLOutputType}):GraphQLOutputType => {
-  return new GraphQLObjectType({
-    name: name,
-    fields: {
-      message: { type: GraphQLString },
-      statusCode: { type: GraphQLInt },
-      data: { type: data }
-    },
-  });
-}
-
-export const GraphQLGenderEnum = new GraphQLEnumType({
-  name: "GraphQLGenderEnum",
-  values: {
-    male: { value: GenderEnum.male },
-    female: { value: GenderEnum.female },
-  }
-});
-
-export const GraphQLOneUserResponse = new GraphQLObjectType({
-  name: "oneUserResponse",
-  fields: {
-    id: { type: GraphQLID },
-    name: { type: new GraphQLNonNull(GraphQLString), description: "userName" },
-    email: { type: GraphQLString },
-    gender: { type: GraphQLGenderEnum },
-    followers: { type: new GraphQLList(GraphQLID) }
-  }
 });
 
 const bootstrap = async (): Promise<void> => {

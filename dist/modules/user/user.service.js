@@ -15,6 +15,7 @@ class userService {
     userModel = new user_repository_1.UserRepository(User_model_1.UserModel);
     tokenModel = new token_repository_1.TokenRepository(Token_model_1.TokenModel);
     postModel = new repository_1.PostRepository(models_1.PostModel);
+    chatModel = new repository_1.ChatRepository(models_1.ChatModel);
     friendRequestModel = new repository_1.FriendRequestRepository(models_1.FriendRequestModel);
     constructor() { }
     profile = async (req, res) => {
@@ -32,10 +33,16 @@ class userService {
         if (!profile) {
             throw new error_response_1.Notfound("Failed to find user profile");
         }
+        const groups = await this.chatModel.find({
+            filter: {
+                participants: { $in: req.user?._id },
+                group: { $exists: true }
+            }
+        });
         if (!req.user) {
             throw new error_response_1.Unauthorized("missing user details");
         }
-        return (0, success_response_1.successResponse)({ res, data: { user: profile } });
+        return (0, success_response_1.successResponse)({ res, data: { user: profile, groups } });
     };
     dashboard = async (req, res) => {
         const results = await Promise.allSettled([

@@ -1,25 +1,30 @@
-export { UserGQLSchema } from '../user/user.schema.gql';
-export { UserArgs, GraphQLGenderEnum } from '../user/user.args.gql';
-export { userResolvers } from '../user/user.resolver';
+// Core exports
+export { RootSchema } from './schema.root';
 
-export type { 
-  AllUsersArgs, 
-  SearchUserArgs, 
-  AddFollowerArgs,
-  CreateUserArgs,
-  UpdateUserArgs,
-  DeleteUserArgs 
-} from '../user/user.args.gql';
-export type { IUserGQL } from '../user/user.type';
+// Context exports
+export { AuthContext, type IGraphQLContext, type IAuthUser } from './context';
 
-// Export root schema
-export { RootGraphQLSchema } from './schema.gql';
+// Auth exports
+export { AuthGuard } from './auth/auth.guard';
+export { Authenticated, Authorized, OwnerOnly } from './auth/auth.decorator';
 
-// Default schema instance
-import { RootGraphQLSchema } from './schema.gql';
-const schemaFactory = new RootGraphQLSchema();
-export const schema = schemaFactory.createSchema();
+// Validation exports
+export { UserValidation, PostValidation } from './validation';
 
-// For backward compatibility
-import { UserGQLSchema } from '../user/user.schema.gql';
-export const userSchema = new UserGQLSchema().getSchema();
+// Type exports
+export type { IUser, IPost, IComment } from './types';
+export { 
+  UserType, UserListType, UserInputType, LoginInputType, AuthResponseType, 
+  PostType, PostListType, PostInputType, CommentType, CommentInputType,
+  PaginationInfoType, ResponseMessageType 
+} from './types';
+
+// Resolver exports
+export { AuthResolver, UserResolver, PostResolver } from './resolvers';
+
+// Socket exports
+export { SocketHandlers } from './socket';
+
+// Schema instance
+import { RootSchema } from './schema.root';
+export const schema = RootSchema.createSchema();

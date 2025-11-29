@@ -13,10 +13,14 @@ var __createBinding = (this && this.__createBinding) || (Object.create ? (functi
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./Comment.model"), exports);
-__exportStar(require("./Post.model"), exports);
-__exportStar(require("./Token.model"), exports);
-__exportStar(require("./User.model"), exports);
-__exportStar(require("./FriendRequest.model"), exports);
-__exportStar(require("./Chat.model"), exports);
+exports.chatRouter = void 0;
+__exportStar(require("./chat.gateway"), exports);
+__exportStar(require("./chat.event"), exports);
+__exportStar(require("./chat.service"), exports);
+__exportStar(require("./chat.dto"), exports);
+var chat_controller_1 = require("./chat.controller");
+Object.defineProperty(exports, "chatRouter", { enumerable: true, get: function () { return __importDefault(chat_controller_1).default; } });

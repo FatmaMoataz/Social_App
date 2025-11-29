@@ -1,0 +1,1 @@
+export { UserValidation, PostValidation } from './user.validation';
