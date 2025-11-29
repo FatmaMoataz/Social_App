@@ -68,15 +68,6 @@ export const GraphQLOneUserResponse = new GraphQLObjectType({
   }
 });
 
-export interface IUser {
-  id: number,
-  name: string,
-  email: string,
-  gender: GenderEnum,
-  password: string,
-  followers: number[]
-}
-
 const bootstrap = async (): Promise<void> => {
   const app: Express = express();
   const port: number | string = process.env.PORT || 5000;
