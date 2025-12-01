@@ -34,7 +34,7 @@ if(req.files) {
           issues: errors.issues.map((issue) => ({
             message: issue.message,
             path: issue.path, 
-          })),
+          })) as [],
         });
       }
     }
